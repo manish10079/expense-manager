@@ -59,6 +59,24 @@ It removes dependence on:
 
 
 
+## 🌐 Live Demo
+
+👉 **Live App:**  
+https://expmngr101.netlify.app  
+
+You can use the app in two ways:
+
+### 🟢 Online
+Open the link above in any modern browser and start using Expense Book instantly.
+
+### 📴 Offline
+1. Download the `index.html` file from this repository  
+2. Double-click it or open it in any browser  
+3. The app will run completely offline with full features  
+
+Your data stays on your device in both modes.
+
+---
 
 
 
