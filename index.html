@@ -1,0 +1,4820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Expense Tracker</title>
+<link rel="icon" type="image/png" href="logo.png">
+<!-- Material Icons (Outlined) - use css2 endpoint -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Outlined" />
+<!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<!-- Export Data As PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+
+  <style>
+    :root{
+      --bg:#0f1113;
+      --panel:#1e1e1e;
+      --muted:#9aa0a6;
+      --accent:#4ecb71;
+      --danger:#e84c3d;
+      --card:#131416;
+      --soft-shadow: 0 6px 18px rgba(0,0,0,0.45);
+      --radius:16px;
+      --ui-font: 'Poppins', system-ui, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#0b0c0d 0%, #0f1113 100%);
+      color:#f5f5f5;
+      font-family:var(--ui-font);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:12px;
+      min-height:100vh;
+    }
+
+    .container{
+      max-width:720px;
+      margin:0 auto;
+      height:100%;
+      padding-bottom:90px;
+    }
+
+    header.header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .title{
+      font-size:1.25rem;
+      font-weight:600;
+      color:#f4f4f4;
+    }
+
+    .header-icons{display:flex; gap:8px}
+    .icon-btn{
+      background:transparent;
+      border:1px solid rgba(191, 191, 191, 0.2);
+      birder-radius:20px;
+      color:var(--muted);
+      font-size:20px;
+      padding:5px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:25px;
+    }
+    .icon-btn:hover{background:rgba(255,255,255,0.02); color:#fff}
+
+    .search-bar{
+      width:100%;
+      height:45px;
+      padding: 10px 40px 10px 14px; /* adds space for the right icon */
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.03);
+      background:var(--card);
+      color:#f5f5f5;
+      margin-bottom:5px;
+      font-family: var(--ui-font);
+    }
+  .search-bar::placeholder {
+  font-size: 1rem;   /* â¬… increase or decrease as needed */
+  color: #bfbfbf;      /* optional: softer gray for readability */
+  opacity:0.4;          /* ensure consistent brightness across browsers */
+}
+
+
+    /* summary row */
+    .summary{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .card{
+      background:var(--panel);
+      border-radius:12px;
+      padding:10px;
+      max-height: 65px;
+      box-shadow:var(--soft-shadow);
+    }
+    .card .label{color:var(--muted); font-size:0.85rem}
+    .card .value{font-weight:700; margin-top:2px}
+    .card #totalIncome{color : var(--muted)}
+    .card #balance{color : #198334} /*green color*/
+    .card #totalExpense{color : var(--danger);}
+
+    /* transactions list */
+    .transactions-list{
+      margin-top:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:61dvh;
+      overflow:auto;
+      padding-right:6px;
+    }
+    .transactions-list::-webkit-scrollbar {
+  display: none;                /* Chrome, Edge, Safari */
+}
+    .txn{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px; border-radius:10px; background:var(--card);
+    }
+    .txn .meta{display:flex; gap:10px; align-items:center}
+    .txn .name{font-weight:500}
+    .txn .method{color:var(--muted); font-size:0.85rem}
+    .txn .amount{font-weight:700}
+
+    /* FAB */
+    .fab{
+      position:fixed;
+      bottom:22px;
+      left:50%;
+      transform:translateX(-50%);
+      width:60px;height:60px;border-radius:999px;
+      background:linear-gradient(180deg,var(--accent),#2fb96b);
+      border:none;color:#06110a;font-size:28px;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:80;
+    }
+
+    /* Reusable modal styles (scalable) */
+    .modal-overlay{
+      position:fixed; inset:0;
+      display:flex; justify-content:center; align-items:flex-end;
+      background:rgba(0,0,0,0.45);
+      z-index:999; pointer-events:none; opacity:0;
+      transition:opacity 400ms cubic-bezier(0.25, 1, 0.3, 1);;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-overlay.active{
+      opacity:1; pointer-events:auto;
+    }
+    .modal-overlay.hidden{ display:none; opacity:0; pointer-events:none }
+    
+
+/* ============================= */
+/*  SETTINGS MODAL REFINED LOOK  */
+/* ============================= */
+.modal-container {
+  width: 100%;
+  max-width: 720px;
+  background: #111213; /* blackish tone (not pitch black) */
+  border: 1px solid rgba(255, 255, 255, 0.05); /* subtle thin border */
+  border-radius: var(--radius) var(--radius) 8px 8px;
+  padding: 16px;
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  will-change: transform, opacity;
+  max-height: 75vh;
+  overflow: auto;
+  font-size: 80%;
+}
+
+    /* modal header */
+    .modal-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:1px}
+    .modal-title{font-weight:700}
+    .modal-close{background:none;border:none;color:var(--danger);font-size:40px;padding:6px;border-radius:8px;cursor:pointer}
+    .modal-close:hover{color:#fff;background:rgba(255,255,255,0.02)}
+
+    /* slide animations applied to container */
+    @keyframes slideUp{ from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes slideDown{ from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+
+     .modal-container.enter{ animation: slideUp 400ms cubic-bezier(0.25,1,0.3,1) forwards; }
+     .modal-container.leave{ animation: slideDown 400ms cubic-bezier(0.25,1,0.3,1) forwards; }
+    /* form fields inside modal */
+    .form-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+    .amount-input{ width:100%; font-size:2.2rem; text-align:center; padding:6px 8px; background:transparent; border:none; color:#fff; font-weight:700; outline:none }
+    .notes-input{ width:100%; padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03); background:var(--card); color:#fff }
+
+    .segmented{display:flex;gap:8px}
+    
+    
+  /* overview-modal-start */ 
+/* overview modal anchored to top and slide-down animation */
+.modal-overlay[data-modal="overview"]{align-items:flex-start;}
+.modal-overlay[data-modal="overview"] .modal-container{border-radius:0 0 18px 18px;max-height:95vh;margin-top:10px;padding:12px;overflow:auto;}
+@keyframes slideDownFromTop{from{transform:translateY(-120%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideUpToTop{from{transform:translateY(0);opacity:1}to{transform:translateY(-120%);opacity:0}}
+.modal-overlay[data-modal="overview"] .modal-container.enter-top{animation:slideDownFromTop 360ms cubic-bezier(.25,1,.3,1) forwards;}
+.modal-overlay[data-modal="overview"] .modal-container.leave-top{animation:slideUpToTop 320ms cubic-bezier(.25,1,.3,1) forwards;}
+/* small helpers for calendar grid */
+.overview-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.overview-actions{display:flex;align-items:center;gap:8px}
+.overview-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.overview-day{background:var(--card);padding:8px;border-radius:8px;font-size:0.85rem;min-height:64px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid grey;}
+.month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.month-tile{background:var(--card);padding:12px;border-radius:10px;min-height:72px;display:flex;flex-direction:column;justify-content:space-between}
+.hidden-display{display:none!important}
+/* overview-modal-end */
+/* overview-highlight */
+.overview-highlight {
+  background: rgba(255, 80, 80, 0.25);
+  border: 1px solid rgba(255, 120, 120, 0.5);
+}
+
+/* Centered navigation inside Overview modal */
+.modal-overlay[data-modal="overview"] .date-nav-container {
+  justify-content: center;              /* center horizontally */
+  background: transparent;              /* optional: remove box background */
+  box-shadow: none;                     /* no shadow in modal */
+  margin: 10px auto 16px;               /* center vertically with spacing */
+  padding: 0;                           /* remove extra padding */
+}
+
+.modal-overlay[data-modal="overview"] .date-picker-wrapper {
+  gap: 16px;                            /* space between arrow and input */
+}
+
+.modal-overlay[data-modal="overview"] .date-arrow {
+  font-size: 28px;                      /* larger arrows */
+  color: var(--accent);                 /* highlight with accent color */
+}
+
+.modal-overlay[data-modal="overview"] #ovDatePicker {
+  font-size: 1.1rem;                    /* slightly bigger input text */
+  font-weight: 600;
+  text-align: center;
+  min-width: 140px;                     /* wider field */
+}
+.modal-overlay[data-modal="overview"] .date-arrow:hover {
+  transform: scale(1.15);
+  transition: transform 0.2s ease;
+  color: #fff;
+}
+
+
+  /* ============================= */
+/*     SEGMENTED BUTTON STYLE    */
+/* ============================= */
+.segmented button {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 300ms cubic-bezier(0.25, 1, 0.3, 1);
+}
+
+/* ✅ Active (selected) button with tint and grey base */
+.segmented button.active {
+  border: 1px solid white;                   /* neutral grey base */
+  background: rgba(255,255,255,0.06);       /* soft translucent background */
+  color: #fff;
+  box-shadow: 0 0 8px rgba(128,128,128,0.25);
+  transition: all 0.25s ease;
+}
+
+/* 🎨 Expense tint (red glow) */
+.segmented button[data-type="expense"].active {
+  border-color: #ff4d4d;                    /* red accent */
+  box-shadow: 0 0 8px rgba(255,77,77,0.35);
+}
+
+/* 🎨 Income tint (green glow) */
+.segmented button[data-type="income"].active {
+  border-color: #4ecb71;                    /* green accent */
+  box-shadow: 0 0 8px rgba(78,203,113,0.35);
+}
+
+
+
+.segmented button:not(.active):hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+    .btn-row{display:flex;gap:8px;margin-top:8px}
+    .btn{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+    .btn.save{background:var(--accent); color:#08210c}
+    .btn.cancel{background:rgba(255,255,255,0.03); color:#fff}
+
+    /* small screens tweak */
+    @media (max-width:480px){
+      .modal-container{ padding:12px; border-radius:14px 14px 6px 6px; }
+      .amount-input{ font-size:1.6rem }
+      
+    }
+  
+  
+  /*date navigation + custom dropdown menu(daily,monthly,yearly)*/
+  .date-nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 12px;
+  background: var(--card);
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-arrow {
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  user-select: none;
+  transition: color 0.2s;
+}
+.date-arrow:hover { color: #fff; }
+
+.current-date-label {
+  font-weight: 600;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  min-width: 100px;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.custom-dropdown:focus-within {
+  outline: none;
+  border-color: var(--accent);
+}
+.dropdown-selected {
+  padding: 6px 8px;
+  user-select: none;
+}
+.dropdown-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: var(--panel);
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  z-index: 10;
+}
+.dropdown-option {
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: center;
+}
+.dropdown-option:hover,
+.dropdown-option.selected {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+
+  
+  
+/* === Segmented Toggle Buttons (Expense / Income) === */
+.segmented {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #bfbfbf;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Expense button color */
+.segmented button[data-type="expense"] {
+  color: #ff3b30;  /* iOS/Material red */
+}
+
+/* Income button color */
+.segmented button[data-type="income"] {
+  color: #34c759;  /* iOS/Material green */
+}
+
+/* Active (selected) button */
+.segmented button.active {
+  border: 1px solid rgba(255,255,255,0.25);  /* subtle gray border */
+  background: rgba(255,255,255,0.05);        /* soft gray tint */
+                     
+  box-shadow: 0 0 6px rgba(255,255,255,0.05);
+}
+
+/*native dropdown menu for category+source insise tranactional modal css rule*/
+  .native-select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.05
+  
+  );
+  color: #fff;
+  font-family: var(--ui-font);
+  font-size: 0.9rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg fill='white' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  cursor: pointer;
+}
+
+/* Currency label + picker on single line */
+.currency-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 10px;
+}
+
+.currency-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* Compact version of native-select for modal rows */
+.native-select.compact {
+   flex: 1; /* allow full responsive width */
+  width: 60%; padding: 8px 32px 8px 10px; 
+  font-size: 0.9rem;
+  background: var(--card);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+
+.native-select:focus {
+  outline: none;
+  border-color: rgba(255,255,255,0.2);
+}
+.native-select option {
+  background: var(--panel);
+  color: #fff;
+}
+
+/* Transaction Modal Buttons save-tick icon
+  edit icon and delete icon buttons inside 
+  transaction modal*/
+  #editTrxBtn, #saveTrxBtn, #deleteTrxBtn {
+  border: none;
+  background:#111213; 
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.currency-symbol {
+  font-size: 1em;
+  transform: translateY(-1px); /* keeps symbol aligned with numbers */
+  transform:translateX(2px);
+  min-width: 16px;
+}
+
+.trx-right {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 22px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.no-records {
+  color: var(--text-secondary, #aaa);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 24px 0;
+  user-select: none;
+  font-style: italic;
+  opacity: 0.8;
+  animation: popBounce 0.6s ease-in-out forwards;
+}
+
+
+
+
+
+
+/* Common overlay base */
+#splashScreen,
+#loadingScreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  background: var(--bg);
+  color: #fff;
+  font-family: "Poppins", system-ui, sans-serif;
+}
+
+/* ---------------- Splash ---------------- */
+.splash-content {
+  text-align: center;
+  transform-origin: center;
+  animation: splashEntrance 0.9s ease both;
+}
+
+.logo {
+  font-size: 3.4rem;
+  margin-bottom: 8px;
+  color: var(--accent);
+  /* gentle pop animation */
+  animation: popBounce 1.1s cubic-bezier(.2,.9,.3,1) infinite alternate;
+}
+
+.app-title {
+  margin: 6px 0 0;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  opacity: 0;
+  animation: fadeInUp 0.5s ease 0.5s forwards;
+}
+
+.loading-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  opacity: 0;
+  animation: fadeInUp 0.5s ease 0.8s forwards;
+}
+
+
+/* small dots under splash */
+.splash-dots {
+  margin-top: 12px;
+  display: inline-flex;
+  gap: 8px;
+}
+.splash-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: splashDot 1s infinite ease-in-out;
+}
+.splash-dots span:nth-child(2){ animation-delay: 0.15s; }
+.splash-dots span:nth-child(3){ animation-delay: 0.3s; }
+
+/* ---------------- Loading Overlay ---------------- */
+#loadingScreen {
+  background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0.85));
+}
+
+/* content inside loading overlay */
+.loading-content {
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Dots loader (small, subtle) */
+.dots { display:inline-flex; gap:8px; margin-bottom:10px; }
+.dots span {
+  width:10px; height:10px; background:var(--accent); border-radius:50%;
+  transform: scale(0.2); opacity:0.6;
+  animation: dotPulse 1s infinite ease-in-out;
+}
+.dots span:nth-child(2){ animation-delay: 0.15s; }
+.dots span:nth-child(3){ animation-delay: 0.3s; }
+
+/* Card flip loader (optional alternative) */
+.card-loader {
+  width: 64px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #3aa95e);
+  animation: flipCard 1.1s infinite ease-in-out;
+  margin: 0 auto 12px;
+}
+
+/* ================= Animations ================= */
+@keyframes popBounce {
+  0% { transform: scale(0.92); opacity: 0.9; }
+  100% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashEntrance {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes splashDot {
+  0%, 80%, 100% { transform: scale(0.3); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0.3); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+@keyframes flipCard {
+  0%,100% { transform: rotateY(0); }
+  50% { transform: rotateY(180deg); }
+}
+
+/* Fade out helper (used by JS) */
+.hidden-fade {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* App reveal animation */
+#app { opacity: 0; transform: translateY(6px); transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s; }
+#app.visible { opacity: 1; transform: translateY(0); }
+
+
+/* category icon (in transaction cards) */
+.cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 25px;
+  font-size: 20px;
+  line-height: 1;
+  min-width: 44px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* adjust the meta layout to align nicely */
+.txn .meta .cat-icon + div { /* the text block next to icon */
+  min-width: 0;
+}
+
+
+/* ===== Settings Modal — 70% screen height for easy one-hand access ===== */
+.modal-overlay[data-modal="settings"] {
+  align-items: flex-end; /* keep bottom-sheet placement */
+}
+
+/* Make the Settings modal use 70% of the viewport height */
+.modal-overlay[data-modal="settings"] .modal-container {
+  height: 70vh;             /* fixed at 70% of viewport height */
+  max-height: 70vh;         /* ensures no overflow shrink */
+  width: 100%;
+  border-radius: 18px 18px 0 0; /* nice rounded top corners */
+  padding: 10px;
+  overflow-y: auto;          /* scroll if content overflows */
+  -webkit-overflow-scrolling: touch; /* smooth mobile scroll */
+  background-color: var(--bg-secondary, #1e1e1e);
+}
+
+/* Make controls and buttons easier to tap */
+.modal-overlay[data-modal="settings"] button,
+.modal-overlay[data-modal="settings"] select,
+.modal-overlay[data-modal="settings"] input {
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 1px solid grey;
+}
+
+/* Make close button more accessible */
+.modal-overlay[data-modal="settings"] .modal-close {
+  font-size: 28px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+#currencySelect {
+  background: linear-gradient(180deg, #1b1d1f, #232526);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+}
+
+
+/* Overview Type Toggle — inside Overview Modal */
+#overviewTypeToggle button[data-type="expense"] {
+  color: #ff6b6b;
+}
+#overviewTypeToggle button[data-type="income"] {
+  color: #4ecb71;
+}
+#overviewTypeToggle button.active {
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+}
+#overviewTypeToggle span.material-icons-outlined {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+/* Highlight current day in monthly overview */
+.overview-day.current-day {
+  border: 2px solid #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+  border-radius: 10px;
+}
+
+/* Highlight current month in yearly overview */
+.month-tile.current-month {
+  border: 2px solid #2196f3;
+  box-shadow: 0 0 6px rgba(33, 150, 243, 0.4);
+  border-radius: 10px;
+}
+
+
+
+/* =====================================================
+   ✅ AUTO BACKUP DROPDOWN & LAYOUT FIX
+   ===================================================== */
+.auto-backup-section {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+.auto-backup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 60%;
+  z-index: 10;
+}
+
+.auto-backup-section select {
+  width: 100%;
+  background-color: #222;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #fff;
+  appearance: none;
+  z-index: 10;
+  position: relative;
+}
+
+.last-backup-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.modal-overlay[data-modal="settings"] .modal-container {
+  overflow: visible !important; /* ⬅ allows dropdown to expand outside */
+  z-index: 20;
+}
+
+
+/* =====================================================
+   SETTINGS MODAL: scrollable + modern styles (ADD AT END of <style>)
+   ===================================================== */
+
+/* container adjustments (keeps bottom-sheet behavior but scrollable) */
+.modal-overlay[data-modal="settings"] {
+  align-items: flex-end;
+  z-index: 999; /* ensure above app UI */
+  overflow-y: auto; /* allow overlay to scroll if needed */
+}
+
+/* container inside overlay — scrollable region */
+.modal-overlay[data-modal="settings"] .settings-container,
+.modal-overlay[data-modal="settings"] .modal-container.settings-container {
+  max-height: 75vh; /* leaves some top space */
+  height: auto;
+  overflow-y: auto !important; /* enable inner scroll */
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  padding: 14px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(180deg, #0f1113, #171717);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* sticky header (title + close) remains visible while scrolling */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background: transparent;
+  padding: 6px 0;
+  z-index: 20;
+  backdrop-filter: blur(6px);
+}
+
+/* cards inside settings */
+.settings-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* rows */
+.setting-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+/* small muted text */
+.muted-text { color: var(--muted); font-size:0.9rem; }
+
+
+
+/* modern buttons */
+.action-buttons { display:flex; gap:10px; }
+.modern-btn{ flex:1; padding:10px 12px; border-radius:10px; border:none; font-weight:700; cursor:pointer; transition:all .18s ease; }
+.modern-btn.accent{ background: linear-gradient(135deg, var(--accent), #3aa95e); color: #06110a; box-shadow: 0 6px 18px rgba(78,203,113,0.12); }
+.modern-btn.neutral{ background: rgba(255,255,255,0.03); color: #fff; }
+.modern-btn.danger{ background: #2b1a1a; color: #ff6b6b; border: 1px solid rgba(255,255,255,0.04); }
+
+/* toggle switch (keeps visual from earlier) */
+.switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #555; border-radius: 24px; transition: 0.28s; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.28s; }
+.switch input:checked + .slider { background-color: var(--accent); }
+.switch input:checked + .slider:before { transform: translateX(24px); }
+
+/* ensure select dropdown appears above modal content (avoid clipping) */
+.modal-overlay[data-modal="settings"] .native-select,
+.modal-overlay[data-modal="settings"] .settings-card { position: relative; z-index: 10; }
+.modal-overlay[data-modal="settings"] .native-select { z-index: 1600;font-size:12px; }
+
+/* small responsive tweak */
+@media (max-width:480px) {
+  .native-select.compact { width: 68%; }
+  .modern-btn { padding: 10px; font-size: 0.95rem; }
+}
+
+#pdfCustomRange {
+  display: none; /* stays hidden */
+  margin-top: 8px;
+}
+
+#pdfCustomRange.show {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+#pdfCustomRange.show input {
+  flex: 1;
+  margin: 0;
+}
+
+
+
+/* ============================================================
+   MODERN SORT & FILTER MODAL (Refined UI)
+   ============================================================ */
+.modal-overlay[data-modal="sortfilter"] {
+  align-items: flex-end;
+  z-index: 999;
+}
+.modal-overlay[data-modal="sortfilter"] h3 {
+  margin-left: 2px; /* aligns title slightly inwards */
+}
+
+
+.modal-overlay[data-modal="sortfilter"] .modal-container {
+  height: 70vh;
+  max-height: 70vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(180deg, #0f1113, #171717);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Fixed, semi-blurred header */
+.modal-overlay[data-modal="sortfilter"] .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(15, 17, 19, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+/* Scrollable area for filters */
+.modal-overlay[data-modal="sortfilter"] .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 10px 16px 14px;  /* added left margin & spacing */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+
+/* Optional subtle scrollbar for desktop */
+.modal-overlay[data-modal="sortfilter"] .modal-body::-webkit-scrollbar {
+  width: 4px;
+}
+.modal-overlay[data-modal="sortfilter"] .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+/* Spacing between label and button group */
+.modal-overlay[data-modal="sortfilter"] label.muted-text {
+  display: block;
+  margin-bottom: 4px;  /* ✅ gap between label and its group (2–5px range) */
+  margin-top: 10px;    /* keeps distance from previous section */
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+/* Slight vertical gap between groups */
+.modal-overlay[data-modal="sortfilter"] .radio-group {
+  margin-bottom: 6px; /* ✅ keeps space between groups */
+}
+
+/* ✅ Grey border for Min/Max inputs inside Sort & Filter modal */
+.modal-overlay[data-modal="sortfilter"] #minAmount,
+.modal-overlay[data-modal="sortfilter"] #maxAmount {
+  border-color: rgba(180, 180, 180, 0.35); /* soft grey border */
+}
+
+/* ------------------------------
+   Radio buttons (chips)
+------------------------------ */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.radio-option {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid grey;
+  border-radius: 20px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  color: #cfcfcf;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  box-shadow: 0 0 0 rgba(78, 203, 113, 0);
+}
+
+.radio-option:hover {
+  border-color: rgba(78, 203, 113, 0.3);
+  color: #fff;
+  background: rgba(78, 203, 113, 0.05);
+}
+
+/* ✅ Active (selected) state */
+.radio-option.active {
+  background: rgba(78, 203, 113, 0.12);
+  border-color: rgba(78, 203, 113, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(78, 203, 113, 0.4);
+  transform: scale(1.02);
+  font-weight: 600;
+}
+
+/* Smooth tap feedback */
+.radio-option:active {
+  transform: scale(0.96);
+}
+
+/* Inputs for min/max amount */
+.notes-input {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #565656;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+.notes-input:focus {
+  border-color: rgba(78,203,113,0.4);
+  box-shadow: 0 0 8px rgba(78,203,113,0.2);
+  outline: none;
+}
+
+/* Reset button row */
+.btn-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.btn.cancel {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s ease;
+}
+.btn.cancel:hover {
+  border-color: rgba(78,203,113,0.5);
+  color: #4ecb71;
+}
+
+/* Mobile tweak */
+@media (max-width: 480px) {
+  .modal-overlay[data-modal="sortfilter"] .modal-container {
+    padding: 12px;
+  }
+}
+
+
+/* Responsive shrink for Export PDF row */
+.export-pdf {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .export-pdf {
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+  .export-pdf button,
+  .export-pdf input {
+    font-size: 0.95rem !important;
+    padding: 6px 4px !important;
+  }
+  .export-pdf span {
+    font-size: 0.9rem;
+  }
+}
+
+
+/*#########################*/
+/* Multi-select visual */
+/*#########################*/
+
+/* Remove tick badge (if still present) */
+.txn .select-count {
+  display: none !important;
+}
+
+/* Subtle muted red border + inside red glow for selected card */
+.txn.selected {
+  border: 2.5px solid rgba(255, 80, 80, 0.30);          /* same muted red border */
+  box-shadow:
+      inset 0 0 6px rgba(255, 80, 80, 0.25),            /* inner red glow */
+      0 0 4px rgba(255, 80, 80, 0.18);                  /* slight outer soft glow */
+  transform: scale(0.99);                                /* pressed effect */
+}
+
+
+/* Ensure non-selected look stays normal */
+.txn {
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+
+
+/* Prevent text highlighting while tapping or long-pressing transactions */
+.txn, 
+.txn * {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
+}
+
+
+/*#########################*/
+/* Hidden state (removes all space) */
+.selection-summary {
+  display: none;
+}
+
+/* Summary bar overlay – takes NO space */
+.selection-summary {
+  position: absolute;
+  top: 60px; /* adjust height below header */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: calc(100% - 20px);
+
+  background: rgba(28,28,30,0.95);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+
+  display: none;              /* no space taken, hidden */
+  z-index: 9999;
+  
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: all 0.25s ease;
+}
+
+.selection-summary.visible {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Colors */
+.selection-summary div:nth-child(1) { color: #4ECB71; }
+.selection-summary div:nth-child(3) { color: var(--danger); }
+/*#########################*/
+
+
+/* Clear Selection inside summary bar */
+.clear-select-btn{
+    border:none;
+    font-size:16px;
+    background :transparent ;
+    font-family:var(--ui-font);
+} 
+
+/* Slide Down when multi-select enabled */
+@keyframes summaryElasticDown {
+  0% {
+    transform: translateY(-28px) scale(0.94);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(4px) scale(1.02);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-2px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes summaryElasticUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(-6px) scale(1.02);
+  }
+  100% {
+    transform: translateY(-35px) scale(0.94);
+    opacity: 0;
+  }
+}
+
+
+/* Apply animation classes */
+.selection-summary.slide-down {
+  animation: summaryElasticDown 0.75s cubic-bezier(.25,1.2,.3,1) forwards;
+}
+
+.selection-summary.slide-up {
+  animation: summaryElasticUp 0.70s cubic-bezier(.25,1.2,.3,1) forwards;
+}
+
+
+
+/* CHART MODAL CSS START */
+.chart-section {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+}
+
+.chart-header {
+  font-weight: 700;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-header::after {
+  content: "expand_more";
+  font-family: "Material Icons Outlined";
+  font-size: 22px;
+  transition: transform 0.25s;
+}
+
+.chart-header.active::after {
+  transform: rotate(180deg);
+}
+
+.chart-body {
+  display: none;
+  padding: 8px 2px;
+}
+
+.bar-row {
+  margin: 6px 0;
+}
+
+.bar-label {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: #ccc;
+}
+
+.bar-track {
+  background: rgba(255,255,255,0.08);
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 6px;
+  transition: width 0.35s ease;
+}
+
+
+.bar-fill {
+    height: 8px;
+    border-radius: 8px;
+    transition: width .45s ease, background-color .3s;
+    width: 0;
+}
+
+.bar-fill.animate {
+    width: var(--target);
+}
+
+.chart-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+}
+
+/* CHART MODAL CSS END */
+
+  </style>
+</head>
+<body>
+    
+ <!-- ============================
+  STEP 1: Splash + Loading + App containers
+  Paste this near the top of <body>
+  Keep splash visible until app is ready,
+  show loading when performing heavy IO/restore.
+  ============================ -->
+<!-- Splash screen (initial brand/animation) -->
+<div id="splashScreen" aria-hidden="false">
+  <div class="splash-content">
+    <div class="logo material-icons-outlined">account_balance_wallet</div>
+    <h1 class="app-title">Finance Tracker</h1>
+    <p class="loading-text">Getting things ready...</p>
+    <!-- optional progress/dots below -->
+    <div class="splash-dots" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</div>   
+
+<!-- Loading overlay (use while fetching / restoring) -->
+<div id="loadingScreen" aria-hidden="true" style="display:none;">
+  <div class="loading-content">
+    <!-- Choose one of the loaders (dots OR card). Keep both commented and enable one. -->
+    <!-- 1) Animated Dots Loader -->
+    <div class="dots" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <p id="loadingMessage">Loading transactions...</p>
+
+    <!-- 2) Optional card flip loader (uncomment to use instead of dots) -->
+    <!-- <div class="card-loader" aria-hidden="true"></div> -->
+  </div>
+</div>
+
+   
+<!-- App Container  -->   
+  <div class="container">
+      
+      <!--selection sumnary when select mode is on-->
+<div id="selectionSummary" class="selection-summary">
+    <div id="selIncome">Income: ₹0</div>
+
+    <button id="clearSelectionBtn" class="clear-select-btn">Clear All</button>
+
+    <div id="selExpense">Expense: ₹0</div>
+</div>
+
+
+      
+      
+      <!-- header-->
+    <header class="header">
+      <div class="title">Expense Book<sup style="font-size:9px;margin:5px;">v2.7</sup></div>
+      <div class="header-icons">
+          <button class="icon-btn material-icons-outlined" id="chartsBtn" title="Charts" data-open="charts">bar_chart</button>
+   <button id="overviewBtn" class="icon-btn material-icons-outlined" data-open="overview" title="Overview">dashboard</button>
+   <button class="icon-btn material-icons-outlined" data-open="settings" title="Settings">settings</button>
+   </div>
+    </header>
+
+<div class="search-wrapper">
+  <input id="searchInput" class="search-bar" placeholder="Search transactions" />
+  <span class="material-icons-outlined search-icon">search</span>
+</div>
+
+<!-- navigation Arrows for daily,monthly,yearlu -->
+    <div class="date-nav-container">
+  <div class="date-picker-wrapper">
+    <span class="date-arrow material-icons-outlined" id="arrowLeft" aria-label="Previous">arrow_back_ios</span>
+    <span class="current-date-label" id="currentDateLabel">01 Nov 2025</span>
+    <span class="date-arrow material-icons-outlined" id="arrowRight" aria-label="Next">arrow_forward_ios</span>
+  </div>
+
+  <!-- custom dropdown -->
+  <div class="custom-dropdown" tabindex="0" aria-haspopup="listbox" aria-expanded="false" role="combobox">
+    <div class="dropdown-selected" aria-live="polite" aria-atomic="true">Monthly</div>
+    <ul class="dropdown-options" role="listbox" tabindex="-1" hidden>
+    <li class="dropdown-option" role="option" data-value="all" tabindex="0">All</li>
+    
+      <li class="dropdown-option" role="option" data-value="daily" tabindex="0">Daily</li>
+      <li class="dropdown-option selected" role="option" data-value="monthly" tabindex="0">Monthly</li>
+      <li class="dropdown-option" role="option" data-value="yearly" tabindex="0">Yearly</li>
+    </ul>
+  </div>
+
+   <!-- filter button -->
+   <div class="filter-button-wrapper">
+     <button class="icon-btn material-icons-outlined" id="filterBtn" data-open="sortfilter" title="Filter">filter_alt</button>
+   </div>
+</div>
+
+    <div class="summary">
+      <div class="card"><div class="label">Total Expense</div><div id="totalExpense" class="value">â‚¹0</div></div>
+      <div class="card"><div class="label">Total Income</div><div id="totalIncome" class="value">â‚¹0</div></div>
+      <div class="card"><div class="label">Balance</div><div id="balance" class="value">â‚¹0</div></div>
+    </div>
+
+    <div id="transactionsList" class="transactions-list" aria-live="polite"></div>
+  </div>
+
+  <button class="fab" data-open="transaction" id="addBtn" title="Add">+</button>
+
+  <!-- Transaction Modal -->
+<!--  Unified Transaction Modal (Add / Edit / Delete) -->
+<div class="modal-overlay hidden" data-modal="transaction" aria-hidden="true">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="transactionModalTitle">
+
+    <!-- Header -->
+    <div class="modal-header">
+  <div class="modal-title" id="transactionModalTitle">Add Transaction</div>
+  <div id="transactionModalIcons" style="display:flex;align-items:center;gap:8px;">
+    <button id="deleteTrxBtn" class="material-icons-outlined" title="Delete"
+      style="font-size:24px;color:#ff6b6b;display:none;">delete</button>
+    <button id="editTrxBtn" class="material-icons-outlined" title="Edit"
+      style="font-size:24px;color:#4ecb71;display:none;">edit</button>
+    <button id="saveTrxBtn" class="material-icons-outlined" title="Save"
+      style="font-size:24px;color:#4ecb71;display:none;">check</button>
+    <button class="modal-close material-icons-outlined" data-close title="Close">close</button>
+  </div>
+</div>
+    <!-- Body -->
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;margin-top:10px;">
+
+      <div class="segmented" role="tablist" style="margin-bottom:12px;">
+        <button class="active" data-type="expense">Expense</button>
+        <button data-type="income">Income</button>
+      </div>
+
+      <div class="form-row">
+        <input id="amountInput" class="amount-input" inputmode="decimal" placeholder="0.00" />
+      </div>
+
+      <div class="form-row">
+        <textarea id="notesInput" class="notes-input" placeholder="Notes (optional)" rows=""></textarea>
+    </div>
+
+      <div class="form-row">
+        <input id="datetimeInput" type="datetime-local" class="notes-input" />
+      </div>
+
+      <div class="form-row" style="display:flex;gap:12px;">
+        <div style="flex:1">
+          <div class="section-label" style="color:var(--muted); margin-bottom:6px">Category</div>
+          <select id="categorySelect" class="native-select">
+            <option value="Bill" selected>Bill</option>
+            <option value="Health">Health</option>
+            <option value="Food" >Food</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Transport">Transport</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div style="flex:1">
+          <div class="section-label" style="color:var(--muted); margin-bottom:6px">Source</div>
+          <select id="sourceSelect" class="native-select">
+            <option value="Cash">Cash</option>
+            <option value="UPI" selected>UPI</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+    </div> <!-- /modal-body -->
+
+  </div> <!-- /modal-container -->
+</div> <!-- /modal-overlay -->
+
+
+<!-- overview-modal-start --> 
+<div class="modal-overlay hidden" data-modal="overview" aria-hidden="true">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="overviewTitle">
+    <div class="modal-header overview-header">
+      <div>
+        <div id="overviewTitle" class="modal-title">Overview</div>
+        <div style="color:var(--muted);font-size:0.85rem" id="overviewSubtitle">Monthly</div>
+      </div>
+      <!-- Expense/Income segmented toggle -->
+<div class="segmented" id="overviewTypeToggle" style="min-width:140px;">
+  <button class="active" data-type="expense">
+    <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;">trending_down</span>
+    Expense
+  </button>
+  <button data-type="income">
+    <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;">trending_up</span>
+    Income
+  </button>
+</div>
+
+      <div class="overview-actions">
+        <!-- small dropdown to switch Monthly/Yearly -->
+        <div class="custom-dropdown" id="overviewModeDropdown" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+          <div class="dropdown-selected">Monthly</div>
+          <ul class="dropdown-options" role="listbox" hidden>
+            <li class="dropdown-option selected" data-value="monthly">Monthly</li>
+            <li class="dropdown-option" data-value="yearly">Yearly</li>
+          </ul>
+        </div>
+        <button class="modal-close" data-close title="Close">&times;</button>
+      </div>
+    </div>
+
+    <!-- date picker + arrows -->
+    <div class="date-nav-container" style="margin-bottom:12px;">
+      <div class="date-picker-wrapper">
+        <span class="date-arrow material-icons-outlined" id="ovArrowLeft">arrow_back_ios</span>
+        <input id="ovDatePicker" type="month" style="background:transparent;border:none;color:var(--muted);font-weight:600" />
+        <span class="date-arrow material-icons-outlined" id="ovArrowRight">arrow_forward_ios</span>
+      </div>
+    </div>
+
+    <!-- content area -->
+    <div id="overviewContent">
+      <!-- monthly calendar -->
+      <div id="monthlyView" class="overview-section">
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <div style="font-weight:700">This month</div>
+          <div id="monthlyTotal" style="color:var(--muted);margin-left:auto"></div>
+        </div>
+        <div class="overview-calendar" id="calendarGrid"></div>
+      </div>
+
+<!-- yearly grid -->
+<div id="yearlyView" class="overview-section hidden-display">
+  <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <div style="font-weight:700">This year</div>
+    <div id="yearlyTotal" style="color:var(--muted);margin-left:auto"></div>
+  </div>
+  <div class="month-grid" id="yearGrid"></div>
+</div>
+</div> <!-- end content area-->
+  </div>
+</div>
+<!-- overview-modal-end -->
+
+
+<!-- 🔥 CHARTS MODAL -->
+<div class="modal-overlay hidden" data-modal="charts" aria-hidden="true">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="chartsTitle" style="max-height:85vh;overflow:auto;">
+    
+    <div class="modal-header">
+      <div class="modal-title" id="chartsTitle">Charts</div>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+
+    <!-- FILTER AREA -->
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <input id="chartsMonth" type="month" class="notes-input" style="flex:1;">
+    </div>
+
+    <!-- ========================= -->
+    <!-- EXPENSE CATEGORY SECTION -->
+    <!-- ========================= -->
+    <div class="chart-section">
+      <div class="chart-header" data-toggle="expCat">Expense Category Wise</div>
+      <div class="chart-body" id="expCatBody"></div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- INCOME CATEGORY SECTION -->
+    <!-- ========================= -->
+    <div class="chart-section">
+      <div class="chart-header" data-toggle="incCat">Income Category Wise</div>
+      <div class="chart-body" id="incCatBody"></div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- SOURCE WISE -->
+    <!-- ========================= -->
+    <div class="chart-section">
+      <div class="chart-header" data-toggle="sourceCat">Source Wise</div>
+      <div class="chart-body" id="sourceCatBody"></div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- EXPENSE vs INCOME -->
+    <!-- ========================= -->
+    <div class="chart-section">
+      <div class="chart-header" data-toggle="expVsInc">Expense vs Income</div>
+      <div class="chart-body" id="expVsIncBody"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 🔥 CHARTS MODAL END -->
+
+
+<!-- =====================================================
+     START: MODERN SETTINGS MODAL (REPLACE ORIGINAL)
+     - Replace the old settings modal block with this entire block
+     - Keeps the same element IDs so existing JS works unchanged
+     ===================================================== -->
+<div class="modal-overlay hidden" data-modal="settings" aria-hidden="true">
+  <div class="modal-container settings-container" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-header sticky-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div id="settingsTitle" class="modal-title">Settings</div>
+      <button class="modal-close" data-close aria-label="Close settings">&times;</button>
+    </div>
+
+    <div class="settings-content" style="display:flex;flex-direction:column;gap:14px;padding-top:8px;">
+
+      <!-- Auto Backup card -->
+      <section class="settings-card" style="padding:14px;">
+        <h3 style="margin:0 0 8px 0;font-size:1rem;font-weight:600">Auto Backup</h3>
+
+        <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span>Enable Auto Backup</span>
+          <label class="switch" title="Enable or disable automatic backups">
+            <input type="checkbox" id="autoBackupToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span>Backup Frequency</span>
+          <select id="backupFrequency" class="native-select compact" aria-label="Backup frequency">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Last Backup</span>
+          <span id="lastBackupDate" class="muted-text">--</span>
+        </div>
+      </section>
+
+      <!-- Currency card (keeps same ID) -->
+      <section class="settings-card" style="padding:14px;">
+        <h3 style="margin:0 0 8px 0;font-size:1rem;font-weight:600">Currency</h3>
+        <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Select Currency</span>
+          <select id="currencySelect" class="native-select compact" aria-label="Select currency"></select>
+        </div>
+      </section>
+      
+<!-- Export PDF -->
+<!-- Export PDF -->
+<section class="settings-card" style="padding:14px;">
+  <h3 style="margin:0 0 8px 0;font-size:1rem;font-weight:600">Export as PDF</h3>
+
+  <!-- Range selection -->
+  <div class="radio-group single-select" id="pdfRangeOptions" style="flex-wrap:wrap;gap:6px;">
+    <div class="radio-option active" data-value="last30">🗓️ Last 30 Days</div>
+    <div class="radio-option" data-value="last60">📆 Last 60 Days</div>
+    <div class="radio-option" data-value="last90">🗓️ Last 90 Days</div>
+    <div class="radio-option" data-value="all">📜 All</div>
+    <div class="radio-option" data-value="custom">📋 Custom</div>
+  </div>
+
+  <!-- Custom date inputs (hidden until "Custom" selected) -->
+  <div id="pdfCustomRange" style="display:none; margin-top:8px;">
+    <input type="date" id="pdfStartDate" class="notes-input" placeholder="Start Date" />
+    <input type="date" id="pdfEndDate" class="notes-input" placeholder="End Date"  />
+  </div>
+
+  <!-- Export button -->
+  <button id="exportPdfBtn" class="modern-btn accent" 
+          style="margin-top:10px;width:100%;font-size:0.9rem;padding:10px;">
+    Export PDF
+  </button>
+</section>
+
+
+      <!-- Actions card (Backup / Restore / Delete) -->
+<section class="settings-card action-buttons" 
+         style="padding:12px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- 🔥 Record Count Row -->
+    <div class="setting-row" 
+         style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Total Records</span>
+        <span id="recordCount" class="muted-text">0</span>
+    </div>
+
+    <!-- 🔥 Buttons Row -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button id="backupBtn" class="modern-btn accent">CSV Backup</button>
+    <button id="jsonBackupBtn" class="modern-btn accent">JSON Backup</button>
+
+    <button id="restoreBtn" class="modern-btn neutral">CSV Restore</button>
+    <button id="jsonRestoreBtn" class="modern-btn neutral">JSON Restore</button>
+
+    <button id="deleteAllBtn" class="modern-btn danger">Delete All</button>
+</div>
+
+
+</section>
+
+
+    </div> <!-- /.settings-content -->
+  </div> <!-- /.modal-container -->
+</div>
+<!-- =====================================================
+     END: MODERN SETTINGS MODAL
+     ===================================================== -->
+
+
+
+
+
+<!-- START SORT-FILTER MODAL - remove entire block to delete Sort+Filter modal -->
+<div class="modal-overlay hidden" data-modal="sortfilter" aria-hidden="true">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="sfTitle">
+  <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;">
+   <div id="sfTitle" class="modal-title">Sort & Filter</div>
+      <button class="modal-close" data-close aria-label="Close">×</button>
+    </div>
+
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;margin-top:6px;">
+
+      <!-- SORT -->
+      <div>
+        <h3 style="margin:0 0 6px;font-size:1rem;">Sort</h3>
+        <div class="radio-group single-select" id="sortOptions">
+          <div class="radio-option" data-value="newest">🕒 Newest</div>
+          <div class="radio-option" data-value="oldest">📜 Oldest</div>
+          <div class="radio-option" data-value="amountHigh">💰 High → Low</div>
+          <div class="radio-option" data-value="amountLow">💸 Low → High</div>
+
+          <!-- Expense category sorts -->
+          <div class="radio-option" data-value="expCategoryAZ">📕 Expense Category A→Z</div>
+          <div class="radio-option" data-value="expCategoryZA">📘 Expense Category Z→A</div>
+
+          <!-- Income category sorts -->
+          <div class="radio-option" data-value="incCategoryAZ">💼 Income Category A→Z</div>
+          <div class="radio-option" data-value="incCategoryZA">🏦 Income Category Z→A</div>
+          
+          <!-- Source name sorts -->
+          <div class="radio-option" data-value="sourceAZ">🔠 Source A→Z</div>
+          <div class="radio-option" data-value="sourceZA">🔡 Source Z→A</div>
+     
+        </div>
+      </div>
+
+      <hr style="border:1px solid rgba(255,255,255,0.06)">
+
+      <!-- FILTERS -->
+      <div>
+        <h3 style="margin:0 0 6px;font-size:1rem;">Filters</h3>
+
+<!-- Date Filter -->
+<label class="muted-text">Date</label>
+<div class="radio-group single-select" id="filterDateGroup">
+  <div class="radio-option" data-value="last7">🗓️ Last 7 Days</div>
+  <div class="radio-option" data-value="last15">📆 Last 15 Days</div>
+  <div class="radio-option" data-value="last30">🗓️ Last 30 Days</div>
+  <div class="radio-option" data-value="last60">📅 Last 60 Days</div>
+  <div class="radio-option" data-value="custom">📋 Custom Range</div>
+</div>
+
+<!-- Custom Date Inputs -->
+<div id="customDateInputs" style="display:none; margin-top:6px;">
+  <input id="startDate" type="date" class="notes-input" placeholder="Start Date" />
+  <input id="endDate" type="date" class="notes-input" placeholder="End Date" style="margin-top:6px;" />
+</div>
+
+
+        <!-- Type -->
+        <label class="muted-text">Type</label>
+        <div class="radio-group multi-select" id="filterType">
+          <div class="radio-option" data-value="expense">Expense</div>
+          <div class="radio-option" data-value="income">Income</div>
+        </div>
+
+        <!-- Expense Categories -->
+        <label class="muted-text" style="margin-top:8px">Expense Categories</label>
+        <div class="radio-group multi-select" id="filterExpenseCategoryGroup">
+          <div class="radio-option" data-value="Bill">Bill</div>
+          <div class="radio-option" data-value="Health">Health</div>
+          <div class="radio-option" data-value="Food">Food</div>
+          <div class="radio-option" data-value="Shopping">Shopping</div>
+          <div class="radio-option" data-value="Transport">Transport</div>
+          <div class="radio-option" data-value="Other">Other</div>
+        </div>
+
+        <!-- Income Categories -->
+        <label class="muted-text" style="margin-top:8px">Income Categories</label>
+        <div class="radio-group multi-select" id="filterIncomeCategoryGroup">
+          <div class="radio-option" data-value="Salary">Salary</div>
+          <div class="radio-option" data-value="Freelance">Freelance</div>
+          <div class="radio-option" data-value="Other">Other</div>
+        </div>
+
+        <!-- Source -->
+        <label class="muted-text" style="margin-top:8px">Source</label>
+        <div class="radio-group multi-select" id="filterSourceGroup">
+          <div class="radio-option" data-value="Cash">Cash</div>
+          <div class="radio-option" data-value="UPI">UPI</div>
+          <div class="radio-option" data-value="Other">Other</div>
+        </div>
+
+        <!-- Amount Range -->
+        <label class="muted-text" style="margin-top:8px">Amount Range</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input id="minAmount" type="number" class="notes-input" placeholder="Min" />
+          <input id="maxAmount" type="number" class="notes-input" placeholder="Max" />
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="btn-row" style="margin-top:6px">
+        <button id="resetFilterBtn" class="btn cancel">Reset</button>
+        <button id="applySortFilterBtn" class="btn save">Apply</button>
+        
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END SORT-FILTER MODAL -->
+
+<script>
+/* ===========================================================
+   INDEXEDDB STRUCTURE — ExpenseDB
+   -----------------------------------------------------------
+   DB Name: "ExpenseDB"
+
+   ├── Object Store: "transactions"
+   │   • Key Path: "id"  (autoIncrement)
+   │   • Used For: Storing income and expense records
+   │   • Access With: db.transaction("transactions", "readwrite").objectStore("transactions")
+
+   │   • Object Structure:
+   │     {
+   │       id: number,           // Auto-incremented primary key
+   │       timestamp: number,    // Transaction date/time in ms
+   │       amount: number,       // Amount of transaction
+   │       notes: string,        // Optional user notes
+   │       type: string,         // "expense" or "income"
+   │       category: string,     // Category name (e.g. "Food", "Salary")
+   │       source: string        // Payment method or source (e.g. "UPI", "Cash")
+   │     }
+
+   └── Object Store: "settings"
+       • Key Path: "key"
+       • Used For: App-level preferences (currency, symbol)
+       • Access With: db.transaction("settings", "readwrite").objectStore("settings")
+
+       • Object Structure:
+       {
+         key: string,            // Primary key (e.g. "app")
+         currency: string,       // Currency code (e.g. "INR", "USD")
+         symbol: string          // Currency symbol (e.g. "₹", "$")
+       }
+
+   =========================================================== */
+   
+
+  //  Force-delete old DB once (run this first!)
+/*
+  (function forceDeleteOldDB() {
+  const DB_NAME = 'DaybookDB';
+
+  // Always delete on this load (manual one-time reset)
+  indexedDB.deleteDatabase(DB_NAME);
+
+  console.log('Old DaybookDB deleted!\nReload the page now to recreate a fresh database with version 3.');
+
+  // Important:
+  // After seeing the alert and reloading the page once,
+  // remove or comment out this entire block.
+})();
+  */
+/* ---------------------------
+   Small modal manager (scalable)
+   - data-modal="name" marks modal overlays
+   - data-open="name" buttons open modals
+   - elements with [data-close] close the active modal
+   - ensures enter/leave animations don't flicker
+---------------------------*/
+  
+ /*
+ const iconsMap = { Food:'restaurant', Shopping:'shopping_bag', Bill:'receipt_long', Health:'favorite_border', Transport:'directions_car', Others:'category' };
+  // category icon colors
+const catColors = { Food: '#ff9800', Shopping: '#e91e63',Bill: '#03a9f4',Health: '#f44336',Transport: '#4caf50', Others: '#9c27b0'};
+l
+ 
+ */ 
+//constants ------------------------------ 
+  const expenseCategories = [
+  { name: "Bill",     icon: "receipt_long",    color: "#03a9f4" }, // orange
+  { name: "Health",   icon: "favorite_border",  color: "#f44336" }, // red
+  { name: "Food",     icon: "restaurant",      color: "#ff9800" }, // amber
+  { name: "Shopping", icon: "shopping_bag",    color: "#e91e63" }, // purple
+  { name: "Transport",icon: "directions_car",  color: "#009688" }, // blue
+  { name: "Other",    icon: "category",      color: "#607d8b" }  // grey
+];
+
+const incomeCategories = [
+  { name: "Salary",    icon: "account_balance_wallet", color: "#2ecc71" }, // green
+  { name: "Freelance", icon: "work",                   color: "#16a085" }, // teal
+  { name: "Other",     icon: "savings",                color: "#7f8c8d" }  // neutral
+];
+
+
+// ===== GLOBAL CURRENCIES (with flags) =====
+const CURRENCIES = {
+  INR: { name: "Indian Rupee", symbol: "₹", flag: "🇮🇳", flagUrl: null },
+  USD: { name: "US Dollar", symbol: "$", flag: "🇺🇸", flagUrl: null },
+  EUR: { name: "Euro", symbol: "€", flag: "🇪🇺", flagUrl: null },
+  GBP: { name: "British Pound", symbol: "£", flag: "🇬🇧", flagUrl: null },
+  JPY: { name: "Japanese Yen", symbol: "¥", flag: "🇯🇵", flagUrl: null },
+  CNY: { name: "Chinese Yuan", symbol: "¥", flag: "🇨🇳", flagUrl: null },
+  AUD: { name: "Australian Dollar", symbol: "A$", flag: "🇦🇺", flagUrl: null },
+  CAD: { name: "Canadian Dollar", symbol: "C$", flag: "🇨🇦", flagUrl: null },
+  SGD: { name: "Singapore Dollar", symbol: "S$", flag: "🇸🇬", flagUrl: null },
+  CHF: { name: "Swiss Franc", symbol: "CHF", flag: "🇨🇭", flagUrl: null },
+  HKD: { name: "Hong Kong Dollar", symbol: "HK$", flag: "🇭🇰", flagUrl: null },
+  NZD: { name: "New Zealand Dollar", symbol: "NZ$", flag: "🇳🇿", flagUrl: null },
+  SEK: { name: "Swedish Krona", symbol: "kr", flag: "🇸🇪", flagUrl: null },
+  NOK: { name: "Norwegian Krone", symbol: "kr", flag: "🇳🇴", flagUrl: null },
+  DKK: { name: "Danish Krone", symbol: "kr", flag: "🇩🇰", flagUrl: null },
+  RUB: { name: "Russian Ruble", symbol: "₽", flag: "🇷🇺", flagUrl: null },
+  KRW: { name: "South Korean Won", symbol: "₩", flag: "🇰🇷", flagUrl: null },
+  THB: { name: "Thai Baht", symbol: "฿", flag: "🇹🇭", flagUrl: null },
+  MYR: { name: "Malaysian Ringgit", symbol: "RM", flag: "🇲🇾", flagUrl: null },
+  IDR: { name: "Indonesian Rupiah", symbol: "Rp", flag: "🇮🇩", flagUrl: null },
+  PHP: { name: "Philippine Peso", symbol: "₱", flag: "🇵🇭", flagUrl: null },
+  AED: { name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪", flagUrl: null },
+  SAR: { name: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦", flagUrl: null },
+  ZAR: { name: "South African Rand", symbol: "R", flag: "🇿🇦", flagUrl: null },
+  TRY: { name: "Turkish Lira", symbol: "₺", flag: "🇹🇷", flagUrl: null },
+  BDT: { name: "Bangladeshi Taka", symbol: "৳", flag: "🇧🇩", flagUrl: null },
+  PKR: { name: "Pakistani Rupee", symbol: "₨", flag: "🇵🇰", flagUrl: null },
+  LKR: { name: "Sri Lankan Rupee", symbol: "Rs", flag: "🇱🇰", flagUrl: null },
+  NPR: { name: "Nepalese Rupee", symbol: "Rs", flag: "🇳🇵", flagUrl: null },
+  KWD: { name: "Kuwaiti Dinar", symbol: "KD", flag: "🇰🇼", flagUrl: null },
+  QAR: { name: "Qatari Riyal", symbol: "ر.ق", flag: "🇶🇦", flagUrl: null },
+  OMR: { name: "Omani Rial", symbol: "ر.ع.", flag: "🇴🇲", flagUrl: null },
+  EGP: { name: "Egyptian Pound", symbol: "£", flag: "🇪🇬", flagUrl: null },
+  NGN: { name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬", flagUrl: null },
+  BRL: { name: "Brazilian Real", symbol: "R$", flag: "🇧🇷", flagUrl: null },
+  MXN: { name: "Mexican Peso", symbol: "$", flag: "🇲🇽", flagUrl: null },
+  ARS: { name: "Argentine Peso", symbol: "$", flag: "🇦🇷", flagUrl: null },
+  VND: { name: "Vietnamese Dong", symbol: "₫", flag: "🇻🇳", flagUrl: null }
+};
+
+let appCurrency = Object.keys(CURRENCIES)[0]; // "INR" by default
+
+// ============================= //
+//   POPULATE CURRENCY DROPDOWN  //
+// ============================= //
+function populateCurrencyDropdown() {
+  const select = document.getElementById("currencySelect");
+  select.innerHTML = ""; // clear old options
+
+  for (const [code, data] of Object.entries(CURRENCIES)) {
+    const option = document.createElement("option");
+    option.value = code; // store only code
+    option.textContent = `${data.flag} ${code} — ${data.name}`;
+    select.appendChild(option);
+  }
+
+  // Set saved or default
+  select.value = appCurrency;
+}
+
+/*#########################*/
+// ---------- Multi-select state & helpers ----------
+/*#########################*/
+window.multiSelectMode = false;
+window.selectedTxIds = new Set();
+
+
+// CLEAR SELECTION BUTTON LOGIC
+
+clearSelectionBtn.addEventListener("click", () => {
+    exitMultiSelectMode(); //Turn off multi select mode
+    hideSelectionSummary();  // smooth slide-up animation
+    renderTransactions(getFilteredTransactions(currentView));
+});
+
+
+function enterMultiSelectMode() {
+  if (window.multiSelectMode) return;
+  window.multiSelectMode = true;
+  // change FAB to delete
+  const fab = document.getElementById('addBtn');
+  fab.dataset.priorTitle = fab.title || 'Add';
+  fab.innerHTML = '<span class="material-icons-outlined" aria-hidden="true">delete</span>';
+  fab.title = 'Delete selected';
+  // remove data-open so modalManager isn't auto-opened by attribute (safety)
+  fab.removeAttribute('data-open');
+  // quick visual: make FAB red-ish
+  fab.style.background = 'linear-gradient(180deg,#e84c3d,#d6453b)';
+  // ensure click uses our handler (we'll set handler below once)
+  updateFabHandler();
+  // visually hint selectable mode (optional)
+  document.body.classList.add('multi-select-active');
+ selectionSummary.classList.remove("slide-up");
+selectionSummary.classList.add("slide-down");
+
+}
+
+function exitMultiSelectMode() {
+  if (!window.multiSelectMode) return;
+  window.multiSelectMode = false;
+  window.selectedTxIds.clear();
+  // reset FAB back to plus
+  const fab = document.getElementById('addBtn');
+  fab.innerHTML = '+';
+  fab.title = fab.dataset.priorTitle || 'Add';
+  fab.setAttribute('data-open', 'transaction');
+  fab.style.background = ''; // let CSS default handle it
+  updateFabHandler();
+  // remove selected visuals
+  document.querySelectorAll('.txn.selected').forEach(el => el.classList.remove('selected'));
+  document.body.classList.remove('multi-select-active');
+  updateSelectedCountUI();
+  updateSelectionSummary();
+  selectionSummary.classList.remove("slide-down");
+  selectionSummary.classList.add("slide-up");
+
+}
+
+function toggleSelect(id, element) {
+  id = Number(id);
+  if (window.selectedTxIds.has(id)) {
+    window.selectedTxIds.delete(id);
+    element.classList.remove('selected');
+  } else {
+    window.selectedTxIds.add(id);
+    element.classList.add('selected');
+  }
+  updateSelectedCountUI();
+
+  // if no selection left, revert to normal
+  if (window.multiSelectMode && window.selectedTxIds.size === 0) {
+    // small delay so user sees visual change
+    setTimeout(() => exitMultiSelectMode(), 80);
+  }
+  
+  updateSelectionSummary();
+}
+
+function updateSelectedCountUI() {
+  // optional: show a toast-like small count somewhere or change FAB badge
+  const count = window.selectedTxIds.size;
+  const fab = document.getElementById('addBtn');
+  if (!window.multiSelectMode) {
+    fab.setAttribute('aria-label', 'Add');
+  } else {
+    fab.setAttribute('aria-label', `Delete ${count} selected`);
+  }
+}
+
+
+/*#########################*/
+
+
+// ============================= //
+//      UPDATE SELECTION SUMMARY      //
+// ============================= //
+
+function updateSelectionSummary() {
+  const bar = document.getElementById("selectionSummary");
+
+  if (!window.multiSelectMode || window.selectedTxIds.size === 0) {
+    hideSelectionSummary();
+    return;
+}
+
+
+  let income = 0, expense = 0;
+
+  const all = window.allTransactions || [];
+  window.selectedTxIds.forEach(id => {
+    const tx = all.find(t => t.id === id);
+    if (!tx) return;
+    if (tx.type === "income") income += tx.amount;
+    else expense += tx.amount;
+  });
+
+  document.getElementById("selIncome").textContent = "Income: " + `${formatCurrency(Number(income || 0), appCurrency)}` ;
+  document.getElementById("selExpense").textContent = "Expense: " + `${formatCurrency(Number(expense || 0), appCurrency)}` ;
+  showSelectionSummary();
+  
+}
+
+/*#########################*/
+
+// =====================
+// Summary Bar Animations
+// =====================
+
+function showSelectionSummary() {
+  const bar = document.getElementById("selectionSummary");
+
+  bar.style.display = "flex"; // must show before animation
+  bar.classList.remove("slide-up");
+  bar.classList.add("slide-down");
+
+  setTimeout(() => {
+    bar.classList.add("visible");
+  }, 10);
+}
+
+
+function hideSelectionSummary() {
+  const bar = document.getElementById("selectionSummary");
+
+  bar.classList.remove("slide-down");
+  bar.classList.add("slide-up");
+
+  // wait for slide-up to finish before hiding
+  setTimeout(() => {
+    bar.classList.remove("visible");
+    bar.style.display = "none";
+  }, 780); // match CSS animation time (0.78s)
+}
+
+
+
+
+
+
+// ============================= //
+//      FORMAT CURRENCY FIX      //
+// ============================= //
+// ===== Helper: format amount with symbol =====
+function formatCurrency(amount, code = appCurrency) {
+  const symbol = CURRENCIES[code]?.symbol || "";
+  return `${symbol}${amount}`;
+}
+
+
+
+// convert hex color like "#ff6600" to "rgba(255,102,0,alpha)"
+function hexToRgba(hex, alpha = 0.12) {
+  const h = hex.replace('#','');
+  const bigint = parseInt(h.length === 3 ? h.split('').map(c => c+c).join('') : h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+
+//     GLOBAL SETTINGS STATE     //
+let appSettings = { currency: "INR"};
+
+ // âœ… Helper: convert Date to local datetime string for <input type="datetime-local">
+function toDateTimeLocal(d) {
+  const pad = n => String(n).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+//=============================================================
+// update the lable inside settings to get total records present
+//===============================================================
+async function updateRecordCount() {
+    const tx = await getAllTransactions();
+    document.getElementById("recordCount").textContent = tx.length;
+}
+
+
+
+
+// to show a message when ther is 
+// no transaction present
+function showNoRecordsMessage(container, searchQuery = "") {
+  // Clear previous content
+  container.innerHTML = "";
+
+  // Create message element
+  const msg = document.createElement("div");
+  msg.className = "no-records";
+  msg.style.textAlign = "center";
+  msg.style.padding = "20px";
+  msg.style.opacity = "0.7";
+  msg.setAttribute("aria-live", "polite");
+
+  // Funny / friendly lines
+  const messages = [
+    "Your wallet's too quiet today.",
+    "404: Transactions Not Found.",
+    "Nothing here! maybe grab a coffee?",
+    "Haven't found any.",
+    "Looks empty...",
+    "No transactions to display.",
+    "No records yet"
+  ];
+
+  // Pick a random message
+  const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+
+  // Add search context if provided
+  const queryText = searchQuery ? ` for "${searchQuery}"` : "";
+
+  msg.textContent = `${randomMsg}${queryText}`;
+
+  container.appendChild(msg);
+
+  // Reset totals to 0 (safe guard)
+  const totalExpenseEl = document.getElementById("totalExpense");
+  const totalIncomeEl = document.getElementById("totalIncome");
+  const balanceEl = document.getElementById("balance");
+
+  if (totalExpenseEl) totalExpenseEl.textContent = formatCurrency(0);
+  if (totalIncomeEl) totalIncomeEl.textContent = formatCurrency(0);
+  if (balanceEl) balanceEl.textContent = formatCurrency(0);
+}
+
+ //----------------------------------
+class ModalManager {
+  constructor() {
+    this.active = null;
+    this._bindTriggers();
+    this._bindCloseButtons();
+    this._keyboardFix();
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+    });
+  }
+
+  _bindTriggers(){
+    document.querySelectorAll('[data-open]').forEach(btn=>{
+      const name = btn.dataset.open;
+      btn.addEventListener('click',(e)=>{
+        e.preventDefault();
+        this.open(name);
+      });
+    });
+  }
+
+  _bindCloseButtons(){
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('[data-close]') || e.target.closest('[data-close]')) {
+        this.close();
+      }
+      // overlay click to close
+      if (e.target.classList.contains('modal-overlay')) {
+        this.close();
+      }
+    });
+  }
+
+  open(name){
+    const modal = document.querySelector(`[data-modal="${name}"]`);
+    if (!modal) return;
+    if (this.active === modal) return;
+
+    // prepare container
+    const container = modal.querySelector('.modal-container');
+    container.classList.remove('leave');
+    container.classList.add('enter');
+
+    // show overlay
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+
+    // small delay to let CSS transitions apply
+    requestAnimationFrame(()=> modal.classList.add('active'));
+
+    // remember
+    this.active = modal;
+
+//  When opening "Add Transaction" modal: focus amount field + set current date/time
+if (name === 'transaction') {
+  // Focus on amount field after modal opens
+  setTimeout(() => document.getElementById('amountInput')?.focus(), 80);
+  
+}  }
+
+close(){
+  if (!this.active) return;
+  const modal = this.active;
+  const container = modal.querySelector('.modal-container');
+
+  // âœ… 1. Move focus away from inside modal (important)
+  if (document.activeElement && modal.contains(document.activeElement)) {
+    document.activeElement.blur(); // or document.body.focus();
+  }
+
+  container.classList.remove('enter');
+  container.classList.add('leave');
+  modal.classList.remove('active');
+
+  // 2. Mark as hidden AFTER blur
+  modal.setAttribute('aria-hidden', 'true');
+
+  document.getElementById('addBtn')?.focus();
+
+
+  const onEnd = (e) => {
+    if (e.target !== container) return;
+    modal.classList.add('hidden');
+    container.classList.remove('leave');
+    container.removeEventListener('animationend', onEnd);
+  };
+  container.addEventListener('animationend', onEnd);
+  this.active = null;
+}
+
+
+  _keyboardFix(){
+    // on mobile when keyboard appears, scroll active input into view
+    window.addEventListener('resize', () => {
+      const el = document.activeElement;
+      if (!el) return;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        // center the input in the modal viewport
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+}
+
+/* Initialize modal manager */
+const modalManager = new ModalManager();
+
+/* ---------------------------
+   Simple app logic (IndexedDB + rendering)
+   Kept compact and clear so it's easy to extend
+---------------------------*/
+
+let db = null;
+async function initDB(){
+  return new Promise((resolve, reject) => {
+
+    const req = indexedDB.open('ExpenseDB', 1);
+    req.onupgradeneeded = (e) => {
+  const idb = e.target.result;
+  
+  // Create transactions store (for expenses/income)
+  if (!idb.objectStoreNames.contains('transactions')) {
+    idb.createObjectStore('transactions', { keyPath: 'id', autoIncrement: true });
+  }
+
+  // Create new settings store (for app preferences)
+  if (!idb.objectStoreNames.contains('settings')) {
+    idb.createObjectStore('settings', { keyPath: 'key' });
+  }
+  
+  
+};
+    req.onsuccess = (e) => { db = e.target.result; resolve(); };
+    req.onerror = (e) => reject(e);
+  });
+}
+
+async function addTransactionToDB(tx){
+ return new Promise((resolve, reject)=>{
+    
+    const t = db.transaction('transactions','readwrite');
+    const store = t.objectStore('transactions');
+    const r = store.add(tx);
+    r.onsuccess = ()=> resolve(r.result);
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+async function getAllTransactions(){
+  return new Promise((resolve,reject)=>{
+    const t = db.transaction('transactions','readonly');
+    const store = t.objectStore('transactions');
+    const r = store.getAll();
+    r.onsuccess = ()=> resolve(r.result || []);
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+/* render and helpers */
+
+// ============================= //
+//        SEARCH FEATURE         //
+// ============================= //
+
+// store the current sortby globally
+let currentSort = "newest"; // default sort order
+//=================================
+//centralozedized sort function
+//=================================
+function sortTransactions(transactions) {
+  const sorted = [...transactions];
+
+  switch (currentSort) {
+    case "newest":
+      sorted.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      break;
+
+    case "oldest":
+      sorted.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+      break;
+
+    case "amountHigh":
+      sorted.sort((a, b) => Number(b.amount) - Number(a.amount));
+      break;
+
+    case "amountLow":
+      sorted.sort((a, b) => Number(a.amount) - Number(b.amount));
+      break;
+
+    // generic category sorts (fallback)
+    case "categoryAZ":
+      sorted.sort((a, b) => (a.category || "").localeCompare(b.category || ""));
+      break;
+    case "categoryZA":
+      sorted.sort((a, b) => (b.category || "").localeCompare(a.category || ""));
+      break;
+
+    // Expense category sorts — apply only to expense items (stable for others)
+    case "expCategoryAZ":
+      sorted.sort((a, b) => {
+        if (a.type !== "expense" && b.type !== "expense") return 0;
+        if (a.type !== "expense") return 1;
+        if (b.type !== "expense") return -1;
+        return (a.category || "").localeCompare(b.category || "");
+      });
+      break;
+
+    case "expCategoryZA":
+      sorted.sort((a, b) => {
+        if (a.type !== "expense" && b.type !== "expense") return 0;
+        if (a.type !== "expense") return 1;
+        if (b.type !== "expense") return -1;
+        return (b.category || "").localeCompare(a.category || "");
+      });
+      break;
+
+    // Income category sorts — apply only to income items (stable for others)
+    case "incCategoryAZ":
+      sorted.sort((a, b) => {
+        if (a.type !== "income" && b.type !== "income") return 0;
+        if (a.type !== "income") return 1;
+        if (b.type !== "income") return -1;
+        return (a.category || "").localeCompare(b.category || "");
+      });
+      break;
+
+    case "incCategoryZA":
+      sorted.sort((a, b) => {
+        if (a.type !== "income" && b.type !== "income") return 0;
+        if (a.type !== "income") return 1;
+        if (b.type !== "income") return -1;
+        return (b.category || "").localeCompare(a.category || "");
+      });
+      break;
+
+    case "sourceAZ":
+      sorted.sort((a, b) => (a.source || "").localeCompare(b.source || ""));
+      break;
+
+    case "sourceZA":
+      sorted.sort((a, b) => (b.source || "").localeCompare(a.source || ""));
+      break;
+
+    default:
+      sorted.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      break;
+  }
+
+  return sorted;
+}
+
+
+
+// âœ… Store the current search text globally
+let currentSearch = "";
+
+// âœ… Add live search listener
+document.getElementById('searchInput').addEventListener('input', e => {
+  currentSearch = e.target.value.trim().toLowerCase();
+  render(); // re-render list with search applied
+});
+
+//togglem mode between daily, monthly yearly global variables
+let currentMode = "monthly"; // default
+let currentDate = new Date();
+
+  
+// ================
+//renders ui
+//======================= 
+
+async function render() {
+  const listContainer = document.getElementById("transactionsList");
+  if (!listContainer) {
+    console.warn("render(): transactionsList container not found.");
+    return;
+  }
+
+  listContainer.innerHTML = "";
+
+  const all = await getAllTransactions() || [];
+  
+// ============================= //
+//      copying all to global so that update summary selected should work   //
+// ============================= //
+  window.allTransactions = all || [];
+
+
+  // -------------------------
+  //  Filter by current mode
+  // -------------------------
+  const filtered = all.filter((tx) => {
+    if (!tx || !tx.timestamp) return false;
+    if (currentMode === "all") return true;
+
+    const txDate = new Date(Number(tx.timestamp));
+    const curr = currentDate || new Date();
+
+    if (currentMode === "daily") {
+      return (
+        txDate.getFullYear() === curr.getFullYear() &&
+        txDate.getMonth() === curr.getMonth() &&
+        txDate.getDate() === curr.getDate()
+      );
+    }
+    if (currentMode === "monthly") {
+      return (
+        txDate.getFullYear() === curr.getFullYear() &&
+        txDate.getMonth() === curr.getMonth()
+      );
+    }
+    if (currentMode === "yearly") {
+      return txDate.getFullYear() === curr.getFullYear();
+    }
+    return true;
+  });
+
+  // -------------------------
+  // Apply search filter (within mode)
+  // -------------------------
+  const searched = filtered.filter((tx) => {
+    if (!currentSearch) return true;
+    const q = String(currentSearch).toLowerCase();
+    return (
+      String(tx.notes || "").toLowerCase().includes(q) ||
+      String(tx.category || "").toLowerCase().includes(q) ||
+      String(tx.source || "").toLowerCase().includes(q) ||
+      String(tx.amount || "").includes(q)
+    );
+  });
+
+// -------------------------
+// Apply saved Sort + Filters (from appSettings) to 'searched'
+// -------------------------
+// Normalize filters (avoid shadowing core category constants)
+
+const f = (appSettings && appSettings.filters) ? appSettings.filters : (activeFilters || {});
+const types = f.types || f.type || [];
+const filterExpenseCategories = f.expenseCategories || f.expenseCategory || f.categories || [];
+const filterIncomeCategories  = f.incomeCategories || f.incomeCategory || [];
+const sources = f.sources || [];
+const minAmount = f.minAmount !== undefined && f.minAmount !== null ? Number(f.minAmount) : null;
+const maxAmount = f.maxAmount !== undefined && f.maxAmount !== null ? Number(f.maxAmount) : null;
+
+const filteredBySettings = searched.filter(tx => {
+  if (!tx) return false;
+
+// Handle Type Filter
+let typeMatch = true;
+if (types && types.length) {
+  typeMatch = types.includes(tx.type);
+}
+
+// DATE FILTER LOGIC
+if (f.startDate && f.endDate) {
+    if (tx.timestamp < f.startDate || tx.timestamp > f.endDate) {
+        return false;
+    }
+}
+
+
+// Handle Expense / Income Category filters
+let categoryMatch = true;
+if (tx.type === "expense" && filterExpenseCategories.length) {
+  categoryMatch = filterExpenseCategories.includes(tx.category);
+}
+if (tx.type === "income" && filterIncomeCategories.length) {
+  categoryMatch = filterIncomeCategories.includes(tx.category);
+}
+
+// ✅ Allow category-only filtering (auto-detect type)
+if (!types.length && (filterExpenseCategories.length || filterIncomeCategories.length)) {
+  if (filterExpenseCategories.length && tx.type === "income") return false;
+  if (filterIncomeCategories.length && tx.type === "expense") return false;
+  if (tx.type === "expense" && filterExpenseCategories.length && !filterExpenseCategories.includes(tx.category)) return false;
+  if (tx.type === "income" && filterIncomeCategories.length && !filterIncomeCategories.includes(tx.category)) return false;
+}
+
+// Combine results
+if (!typeMatch || !categoryMatch) return false;
+
+  // Source
+  if (sources && sources.length && !sources.includes(tx.source)) return false;
+
+  // Amount range
+  if (minAmount && Number(tx.amount) < minAmount) return false;
+  if (maxAmount && Number(tx.amount) > maxAmount) return false;
+
+  return true;
+});
+
+// -------------------------
+// Sort the final filtered list
+// -------------------------
+const sorted = sortTransactions(filteredBySettings);
+
+  // -------------------------
+  // 4 If no records (after filtering + searching)
+  // -------------------------
+if (sorted.length === 0) {
+  showNoRecordsMessage(listContainer, currentSearch);
+  return;
+}
+
+  // -------------------------
+  // Render sorted transactions
+  // -------------------------
+  const getDateStr = (ts) => {
+    const d = new Date(Number(ts));
+    if (Number.isNaN(d.getTime())) return "";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  for (const tx of sorted) {
+    const list = tx.type === "income" ? incomeCategories : expenseCategories;
+    const cat = list?.find((c) => c.name === tx.category);
+    const iconName = cat ? cat.icon : "help_outline";
+    const color = cat ? cat.color : "#8b8b8b";
+    const bg = hexToRgba(color, 0.08);
+
+    const item = document.createElement("div");
+    item.className = "txn";
+    if (tx.id) item.dataset.id = tx.id;
+
+    const dateStr = getDateStr(tx.timestamp);
+
+
+item.innerHTML = `
+  <div class="meta">
+    <span class="cat-icon material-icons-outlined" 
+          style="color:${color}; background:${bg}">
+      ${iconName}
+    </span>
+    <div>
+      <div class="method">${tx.source || ""} • ${dateStr}</div>
+      <div class="name">${truncateNote(tx.notes) || "No Notes"}</div>
+    </div>
+  </div>
+  <div class="trx-right" style="color:${tx.type === "expense" ? "#e84c3d" : "#4ecb71"}">
+    <span class="currency-symbol">
+      ${tx.type === "expense" ? "-" : "+"} ${formatCurrency(Number(tx.amount || 0), appCurrency)}
+    </span>
+  </div>
+`;
+
+document.querySelectorAll('.txn.selected')
+        .forEach(el => el.classList.remove('selected'));
+        
+
+    // ---------------------- multi-select wiring for each item ----------------------
+item.dataset.id = tx.id; // ensure id present
+
+// helper element to show small badge if needed
+const selBadge = document.createElement('span');
+selBadge.className = 'select-count';
+selBadge.textContent = '✓';
+item.style.position = 'relative';
+item.prepend(selBadge);
+
+// longpress detection
+let longPressTimer = null;
+let longPressFired = false;
+
+const startPress = (e) => {
+  // ignore right-click / 2-finger etc
+  if (e.button === 2) return;
+  longPressFired = false;
+  longPressTimer = setTimeout(() => {
+    longPressFired = true;
+    enterMultiSelectMode();
+    toggleSelect(tx.id, item);
+  }, 600); //  for longpress
+};
+
+const cancelPress = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+};
+
+// click/tap
+item.addEventListener('click', (e) => {
+  // if longpress already triggered, prevent default open
+  if (longPressFired || window.multiSelectMode) {
+    // if multi-select mode: toggle selection
+    toggleSelect(tx.id, item);
+    // prevent any accidental modal open
+    e.stopPropagation();
+    return;
+  }
+  // normal behaviour: open editor (existing)
+  openTransactionEditor(tx);
+});
+
+// mouse / touch events for longpress
+item.addEventListener('mousedown', startPress);
+item.addEventListener('touchstart', startPress, {passive:true});
+item.addEventListener('mouseup', cancelPress);
+item.addEventListener('mouseleave', cancelPress);
+item.addEventListener('touchend', cancelPress);
+item.addEventListener('touchcancel', cancelPress);
+
+listContainer.appendChild(item);
+
+    listContainer.appendChild(item);
+  }  
+
+  // -------------------------
+  // Totals (for current mode)
+  // -------------------------
+  const finalList = filteredBySettings;   // this is what is rendered
+
+const totalExpense = finalList
+  .filter(t => t.type === "expense")
+  .reduce((s, i) => s + Number(i.amount || 0), 0);
+
+const totalIncome = finalList
+  .filter(t => t.type === "income")
+  .reduce((s, i) => s + Number(i.amount || 0), 0);
+
+document.getElementById("totalExpense").textContent = formatCurrency(totalExpense);
+document.getElementById("totalIncome").textContent = formatCurrency(totalIncome);
+document.getElementById("balance").textContent = formatCurrency(totalIncome - totalExpense);
+
+  //update label where records is shown in settings modal
+  updateRecordCount();
+}
+
+//============================
+// Truncates the note  string
+// to 20 max character to show inside
+// trabsnsaction card
+//============================
+function truncateNote(note) {
+  if (!note) return '';
+  return note.length > 20 ? note.substring(0, 20) + '…' : note;
+}
+
+
+
+function hexToRgba(hex, alpha) {
+  const bigint = parseInt(hex.replace('#', ''), 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+
+  
+//  Open Add Transaction modal in EDIT mode
+function openTransactionEditor(tx) {
+  if (!tx) return;
+
+  window.currentTxId = tx.id;
+  window.isEditMode = true; // ✅ mark it's edit mode
+  document.getElementById('transactionModalTitle').textContent = `Edit Transaction | ID : ${tx.id}`;
+
+  // Show edit + delete
+  document.getElementById('saveTrxBtn').style.display = 'none';
+  document.getElementById('deleteTrxBtn').style.display = 'inline';
+  document.getElementById('editTrxBtn').style.display = 'inline';
+  document.getElementById('editTrxBtn').textContent = 'edit';
+
+  // Set transaction type (expense/income)
+  document.querySelectorAll('.segmented button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === tx.type);
+  });
+
+  // ✅ Update category dropdown according to selected type
+  updateCategoryOptions(tx.type);
+
+  // ✅ Fill inputs
+  document.getElementById('amountInput').value = tx.amount || '';
+  document.getElementById('notesInput').value = tx.notes || '';
+
+  // ✅ Set transaction datetime safely
+  if (tx.timestamp) {
+    const localDateTime = new Date(tx.timestamp - (new Date().getTimezoneOffset() * 60000))
+      .toISOString()
+      .slice(0, 16);
+    document.getElementById('datetimeInput').value = localDateTime;
+  } else {
+    // fallback if missing timestamp
+    document.getElementById('datetimeInput').value = toDateTimeLocal(new Date());
+  }
+
+  // ✅ Set category and source
+  document.getElementById('categorySelect').value = tx.category || '';
+  document.getElementById('sourceSelect').value = tx.source || '';
+
+  // Make inputs readonly initially
+  document.getElementById('amountInput').setAttribute('readonly', true);
+  document.getElementById('notesInput').setAttribute('readonly', true);
+  document.getElementById('categorySelect').setAttribute('disabled', true);
+  document.getElementById('sourceSelect').setAttribute('disabled', true);
+  document.getElementById('datetimeInput').setAttribute('disabled', true);
+
+  // ✅ Open modal last (after everything is set)
+  modalManager.open('transaction');
+}
+
+  
+
+// ============================= //
+//  CURRENCY LOGIC (SAVE + LOAD) //
+// ============================= //
+
+// saveAppSettings: two modes (object or key,value)
+async function saveAppSettings(arg1, arg2 = undefined) {
+  // mode detection
+  let settings;
+  if (typeof arg1 === 'string') {
+    // single key update
+    const existing = await getAppSettings();
+    settings = { ...existing, [arg1]: arg2 };
+  } else {
+    // object update - merge
+    settings = { key: 'app', ...(arg1 || {}) };
+    // Merge with existing to avoid dropping unknown fields
+    const existing = await getAppSettings();
+    settings = { ...existing, ...settings };
+  }
+
+  // Ensure essential defaults exist
+  if (typeof settings.currency === 'undefined') settings.currency = 'INR';
+  if (typeof settings.autoBackup === 'undefined') settings.autoBackup = false;
+  if (typeof settings.backupFrequency === 'undefined') settings.backupFrequency = 'weekly';
+  if (typeof settings.lastBackupDate === 'undefined') settings.lastBackupDate = null;
+
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('settings', 'readwrite');
+    const store = t.objectStore('settings');
+    const req = store.put(settings);
+    req.onsuccess = () => resolve(true);
+    req.onerror = (e) => reject(e);
+  });
+}
+// --- END UPGRADED SETTINGS MANAGER ---
+
+// getAppSettings: full object or single key
+async function getAppSettings(key = null) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('settings', 'readonly');
+    const store = t.objectStore('settings');
+    const req = store.get('app');
+
+    req.onsuccess = async () => {
+      let settings = req.result || { key: 'app', currency: 'INR' };
+
+      // Ensure required backup fields exist (do not overwrite if present)
+      if (typeof settings.autoBackup === 'undefined') settings.autoBackup = false;
+      if (typeof settings.backupFrequency === 'undefined') settings.backupFrequency = 'weekly';
+      if (typeof settings.lastBackupDate === 'undefined') settings.lastBackupDate = null;
+
+      if (key) resolve(settings[key]);
+      else resolve(settings);
+    };
+
+    req.onerror = (e) => reject(e);
+  });
+}
+
+// ============================= //
+//   CURRENCY CHANGE HANDLER FIX //
+// ============================= //
+// ✅ Unified currency change handler (uses global CURRENCIES)
+
+// Replace existing handler with this merged-settings version
+document.getElementById('currencySelect').addEventListener('change', async (e) => {
+  const currency = e.target.value;
+
+  // update appCurrency
+  appCurrency = currency;
+  const symbol = CURRENCIES[currency]?.symbol || "₹";
+
+  // --- MERGE with existing settings (do NOT overwrite whole object) ----
+  const existing = await getAppSettings();           // read current settings from DB
+  appSettings = { ...existing, currency };           // merge currency into existing
+
+  await saveAppSettings(appSettings);                // persist merged object
+
+  // keep UI consistent
+  populateCurrencyDropdown();                        // ensure dropdown labels/symbols are up-to-date
+  document.getElementById('currencySelect').value = appCurrency;
+
+  // re-render everything that depends on settings
+  await render();
+  updateSelectionSummary(); //refresh the currency in Selected summary label
+  updateRecordCount();        // refresh the record count in settings modal (if shown)
+
+  showToast(`Currency updated to ${currency} (${symbol})`);
+});
+
+
+
+// ============================= //
+//   SETTINGS ACTIONS HANDLERS   //
+// ============================= //
+
+// ============================= //
+//     DELETE ALL (SAFE FIX)     //
+// ============================= //
+document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+  const sure = confirm("Are you sure you want to delete all transactions?\n\nThis action cannot be undone!");
+  if (!sure) {
+    showToast("Cancelled");
+    return;
+  }
+
+  try {
+// âœ… Just clear the transactions store â€” settings are safe now
+await new Promise((resolve, reject) => {
+  const t = db.transaction('transactions', 'readwrite');
+  const store = t.objectStore('transactions');
+  const req = store.clear();
+  req.onsuccess = resolve;
+  req.onerror = reject;
+});
+    // âœ… Re-render
+    await render();
+     //update label where records is shown in settings modal
+  updateRecordCount();
+    showToast("Successfully deleted all data");
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to delete data");
+  }
+});
+  
+  
+// BACKUP AS CSV
+// ============================= //
+//          BACKUP AS CSV        //
+// ============================= //
+/* =====================================================
+   ✅ BACKUP BUTTON — AUTO UPDATE LAST BACKUP DATE
+   ===================================================== */
+document.getElementById('backupBtn').addEventListener('click', async () => {
+    try {
+        const transactions = await getAllTransactions();
+        if (!transactions.length) {
+            showToast("No records to export");
+            return;
+        }
+
+        // CSV Header (fixed order)
+        const headers = [
+            "Date","Time","Amount","Type","Source","Category","Notes"
+        ];
+
+        const csvRows = [headers.join(",")];
+
+        for (const tx of transactions) {
+            const d = new Date(tx.timestamp);
+
+            const dateStr = d.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }).replace(",", "");
+
+            const timeStr = d.toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            const row = [
+                dateStr,
+                timeStr,
+                Math.abs(tx.amount).toFixed(2),  
+                tx.type.toUpperCase(),
+                tx.source,
+                tx.category,
+                tx.notes ?? ""
+            ];
+
+            csvRows.push(row.map(v => `"${v}"`).join(","));
+        }
+
+        // filename
+        const now = new Date();
+        const pad = n => String(n).padStart(2, "0");
+        let hours = now.getHours();
+        const minutes = pad(now.getMinutes());
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12 || 12;
+
+        const filename = `backup_ExpenseBook_${pad(hours)}-${minutes}${ampm}.csv`;
+
+        const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // update last backup
+        const lastBackupDate = new Date().toISOString();
+        await saveAppSettings("lastBackupDate", lastBackupDate);
+
+        document.getElementById("lastBackupDate").textContent =
+            new Date(lastBackupDate).toLocaleString();
+
+        showToast("Backup successful");
+
+    } catch (err) {
+        console.error(err);
+        showToast("Backup failed");
+    }
+});
+
+
+
+// RESTORE FROM CSV
+document.getElementById("restoreBtn").addEventListener("click", async () => {
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".csv";
+
+    picker.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showLoading("Restoring records...");
+
+        const text = await file.text();
+        const lines = text.trim().split("\n");
+
+        const headers = lines.shift().split(",");
+
+        let imported = 0;
+        let duplicates = 0;
+
+        // fetch existing tx for duplicate check
+        const existing = await getAllTransactions();
+
+        const t = db.transaction("transactions", "readwrite");
+        const store = t.objectStore("transactions");
+
+        for (const line of lines) {
+            const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+                .map(v => v.replace(/^"|"$/g, ""));
+
+            // build object in your DB format
+            const raw = Object.fromEntries(headers.map((h, i) => [h, cols[i]]));
+
+            // ==========================
+            // 🔥 FIX "Others" → "Other"
+            // ==========================
+            if (raw.Category === "Others") raw.Category = "Other";
+            if (raw.Source === "Others") raw.Source = "Other";
+
+            // ==========================
+            // 🔥 FIX AMOUNT
+            // ==========================
+            const amount = Math.abs(parseFloat(raw.Amount)) || 0;
+
+            // ==========================
+            // 🔥 FIX DATE + TIME → timestamp
+            // ==========================
+            const timestamp = new Date(`${raw.Date} ${raw.Time}`).getTime();
+
+            // ==========================
+            // 🔥 NOTES SHIFT CORRECTION
+            // last column (Notes) → notes field
+            // ==========================
+            const notes = raw.Notes || "";
+
+            // ==========================
+            // 🔥 CREATE CLEAN OBJECT
+            // ==========================
+            const obj = {
+                timestamp,
+                amount,
+                notes,
+                type: raw.Type.toLowerCase(),
+                source: raw.Source,
+                category: raw.Category
+            };
+
+            // ==========================
+            // 🔥 DUPLICATE CHECK
+            // ==========================
+            const isDuplicate = existing.some(x =>
+                x.timestamp === obj.timestamp &&
+                x.amount === obj.amount &&
+                x.notes === obj.notes &&
+                x.type === obj.type &&
+                x.category === obj.category &&
+                x.source === obj.source
+            );
+
+            if (isDuplicate) {
+                duplicates++;
+                continue;
+            }
+
+            store.add(obj);
+            imported++;
+        }
+
+        hideLoading();
+        await render();
+
+        showToast(`Imported: ${imported}, Duplicates: ${duplicates}`);
+    };
+
+    picker.click();
+});
+
+
+/* ==========================
+   JSON BACK AND RESTORE
+========================== */
+//BACKUP JSON FILE
+
+document.getElementById("jsonBackupBtn").addEventListener("click", async () => {
+    try {
+        const tx = await getAllTransactions();
+        const settings = await getAppSettings();
+
+        const payload = {
+            app: "ExpenseBook",
+            version: "2.7",
+            exportedAt: new Date().toISOString(),
+            transactions: tx,
+            settings: settings
+        };
+
+        const blob = new Blob(
+            [JSON.stringify(payload, null, 2)],
+            { type: "application/json" }
+        );
+
+        const now = new Date();
+        const fileName = `backup_ExpenseBook_${now.toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast("JSON backup created");
+
+    } catch (e) {
+        console.error(e);
+        showToast("JSON backup failed");
+    }
+});
+
+
+//RESTORE JSON FILE
+document.getElementById("jsonRestoreBtn").addEventListener("click", () => {
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".json";
+
+    picker.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showLoading("Restoring JSON backup...");
+
+        try {
+            const data = JSON.parse(await file.text());
+
+            if (!data.transactions || !Array.isArray(data.transactions)) {
+                throw "Invalid backup file";
+            }
+
+            const existing = await getAllTransactions();
+            let imported = 0, duplicates = 0;
+
+            const t = db.transaction("transactions", "readwrite");
+            const store = t.objectStore("transactions");
+
+            for (const obj of data.transactions) {
+                const isDuplicate = existing.some(x =>
+                    x.timestamp === obj.timestamp &&
+                    x.amount === obj.amount &&
+                    x.notes === obj.notes &&
+                    x.type === obj.type &&
+                    x.category === obj.category &&
+                    x.source === obj.source
+                );
+
+                if (isDuplicate) {
+                    duplicates++;
+                    continue;
+                }
+
+                store.add(obj);
+                imported++;
+            }
+
+            // Restore settings (currency etc)
+            if (data.settings) {
+                await saveAppSettings(data.settings);
+            }
+
+            hideLoading();
+            await render();
+
+            showToast(`Imported ${imported}, skipped ${duplicates}`);
+
+        } catch (err) {
+            console.error(err);
+            hideLoading();
+            showToast("Invalid JSON backup");
+        }
+    };
+
+    picker.click();
+});
+
+
+//===≠========export data as PDF ==============
+/* ==========================
+   EXPORT PDF (FULL REPLACEMENT)
+========================== */
+
+document.getElementById("exportPdfBtn").addEventListener("click", async () => {
+
+  // Get all transactions FIRST
+  const tx = await getAllTransactions();
+
+  const activeOpt = document.querySelector('#pdfRangeOptions .radio-option.active');
+  const range = activeOpt ? activeOpt.dataset.value : "last30";
+
+  const pdfStartInput = document.getElementById("pdfStartDate");
+  const pdfEndInput   = document.getElementById("pdfEndDate");
+
+  let start = pdfStartInput.value;
+  let end   = pdfEndInput.value;
+
+  const toInputDate = d => {
+    const p = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  };
+
+  // PRESET DATE RANGES
+  if (range !== "custom") {
+    const today = new Date();
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let startDate;
+
+    if (range === "last30") startDate = new Date(endDate.getTime() - 29 * 86400000);
+    else if (range === "last60") startDate = new Date(endDate.getTime() - 59 * 86400000);
+    else if (range === "last90") startDate = new Date(endDate.getTime() - 89 * 86400000);
+    else if (range === "all") {
+      if (tx.length > 0) {
+        const earliestTs = Math.min(...tx.map(t => Number(t.timestamp)));
+        startDate = new Date(earliestTs);
+      } else {
+        startDate = new Date();
+      }
+    }
+
+    start = toInputDate(startDate);
+    end   = toInputDate(endDate);
+  }
+
+  if (!start || !end) {
+    showToast("Please select start and end dates.");
+    return;
+  }
+
+  // SAFE TIMESTAMP CONVERSION
+  const startDateObj = new Date(start + "T00:00:00");
+  const endDateObj   = new Date(end + "T23:59:59");
+
+  const startTime = startDateObj.getTime();
+  const endTime   = endDateObj.getTime();
+
+  if (isNaN(startTime) || isNaN(endTime)) {
+    showToast("Invalid date range.");
+    return;
+  }
+
+  // FILTER
+  const filtered = tx
+    .filter(t => Number(t.timestamp) >= startTime && Number(t.timestamp) <= endTime)
+    .sort((a,b)=> Number(a.timestamp) - Number(b.timestamp));
+
+  if (filtered.length === 0) {
+    showToast("No records found in selected range.");
+    return;
+  }
+
+  // PREPARE ROWS
+  const rows = filtered.map(t => {
+    const d = new Date(Number(t.timestamp));
+    const dateStr =
+      `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+
+    return {
+      _date: dateStr,
+      _type: (t.type || "").toString().toUpperCase(),
+      _category: t.category || "-",
+      _amount: Number(t.amount || 0).toFixed(2),
+      _notes: (t.notes || "").toString()
+    };
+  });
+
+  // TOTALS
+  let totalIncome = 0, totalExpense = 0;
+  filtered.forEach(t => {
+    if (t.type === "income") totalIncome += Number(t.amount||0);
+    else totalExpense += Number(t.amount||0);
+  });
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p","pt","a4");
+
+  // HEADER
+  doc.setFontSize(16);
+  doc.setFont("helvetica","bold");
+  doc.text("Financial Report", 40, 40);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica","normal");
+  doc.text(`Period: ${start} to ${end}`, 40, 60);
+
+  // AUTOTABLE
+  const head = [["Date","TYPE","Category","Amount","Notes"]];
+  const body = rows.map(r => [r._date, r._type, r._category, r._amount, r._notes]);
+
+  doc.autoTable({
+    head,
+    body,
+    startY: 80,
+    styles: { fontSize: 9, cellPadding: 6 },
+    headStyles: { fillColor: [240,240,240], fontStyle: "bold" },
+    columnStyles: { 3: { halign: "right" } },
+    didParseCell(data) {
+      if (data.section === "body" && data.column.index === 3) {
+        const rowType = data.row.cells[1].raw;
+        data.cell.styles.textColor =
+          rowType === "INCOME" ? [25,130,50] : [220,40,40];
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+    theme: "grid",
+    margin: { left: 40, right: 40 }
+  });
+
+  let finalY = doc.lastAutoTable.finalY + 12;
+
+  // TOTALS
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(11);
+
+  doc.setTextColor(25,130,50);
+  doc.text(`Total Income:  ${totalIncome.toFixed(2)}`, 40, finalY);
+
+  finalY += 14;
+  doc.setTextColor(220,40,40);
+  doc.text(`Total Expense: ${totalExpense.toFixed(2)}`, 40, finalY);
+
+  finalY += 14;
+  doc.setTextColor(20,20,20);
+  doc.text(`Balance:       ${(totalIncome - totalExpense).toFixed(2)}`, 40, finalY);
+
+  // FILENAME FORMAT → 19 Nov 2025 - 4.43 PM
+  function formatStamp() {
+    const now = new Date();
+
+    const day = String(now.getDate()).padStart(2, "0");
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+
+    return `${day} ${month} ${year} - ${hours}.${minutes} ${ampm}`;
+  }
+
+  const stamp = formatStamp();
+
+  doc.save(`Report_${start}_to_${end}_${stamp}.pdf`);
+  showToast("PDF exported successfully!");
+});
+
+
+// ===== PDF RANGE UI =====
+const pdfRangeOptions = document.querySelectorAll('#pdfRangeOptions .radio-option');
+const pdfCustomRange = document.getElementById('pdfCustomRange');
+
+pdfRangeOptions.forEach(opt => {
+  opt.addEventListener('click', () => {
+    pdfRangeOptions.forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+
+    const val = opt.dataset.value;
+
+    if (val === 'custom') {
+      pdfCustomRange.classList.add('show');
+      pdfCustomRange.style.display = "flex";
+    } else {
+      pdfCustomRange.classList.remove('show');
+      pdfCustomRange.style.display = "none";
+    }
+  });
+});
+
+
+
+
+// … Handle ADD (+) button click
+// install/refresh FAB click behavior
+function updateFabHandler() {
+  const fab = document.getElementById('addBtn');
+  
+  // remove old handlers by cloning
+  const newFab = fab.cloneNode(true);
+  fab.parentNode.replaceChild(newFab, fab);
+
+  newFab.addEventListener('click', async (e) => {
+    
+    // ------------------- MULTI-SELECT DELETE MODE -------------------
+    if (window.multiSelectMode) {
+      if (window.selectedTxIds.size === 0) {
+        exitMultiSelectMode();
+        return;
+      }
+
+      const sure = confirm(`Are you sure you want to delete ${window.selectedTxIds.size} selected transactions?`);
+      if (!sure) {
+        showToast('Cancelled');
+        exitMultiSelectMode();
+        return;
+      }
+
+      // Perform delete
+      try {
+        await new Promise((resolve, reject) => {
+          const t = db.transaction('transactions', 'readwrite');
+          const store = t.objectStore('transactions');
+          for (const id of window.selectedTxIds) store.delete(id);
+          t.oncomplete = resolve;
+          t.onerror = reject;
+        });
+
+        showToast(`Deleted ${window.selectedTxIds.size} transactions`);
+        exitMultiSelectMode();
+        await render();
+
+      } catch (err) {
+        console.error(err);
+        showToast('Delete failed');
+        exitMultiSelectMode();
+      }
+
+      return;
+    }
+
+    // ------------------- NORMAL ADD MODE -------------------
+    window.currentTxId = null;
+    window.isEditMode = false;
+    document.getElementById('transactionModalTitle').textContent = 'Add Transaction';
+
+    document.getElementById('saveTrxBtn').style.display = 'inline';
+    document.getElementById('deleteTrxBtn').style.display = 'none';
+    document.getElementById('editTrxBtn').style.display = 'none';
+
+    document.getElementById('amountInput').value = '';
+    document.getElementById('notesInput').value = '';
+    document.getElementById('datetimeInput').value = toDateTimeLocal(new Date());
+
+    document.querySelectorAll('.segmented button').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.segmented button[data-type="expense"]').classList.add('active');
+    updateCategoryOptions('expense');
+
+    document.getElementById('categorySelect').value = 'Food';
+    document.getElementById('sourceSelect').value = 'UPI';
+
+    modalManager.open('transaction');
+  });
+}
+
+// call once during load
+
+
+
+// changes category values when switch between expense & income toggle 
+function updateCategoryOptions(type) {
+  const catSelect = document.getElementById('categorySelect');
+  catSelect.innerHTML = ''; // clear previous options
+
+  const list = type === 'income' ? incomeCategories : expenseCategories;
+
+  list.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item.name;
+    opt.textContent = item.name;       // <-- only name (no emoji)
+    opt.dataset.icon = item.icon;
+    opt.dataset.color = item.color;
+    catSelect.appendChild(opt);
+  });
+ 
+  catSelect.selectedIndex = 0;
+}
+
+
+
+/* segmented buttons behavior */
+document.querySelectorAll('.segmented button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.segmented button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* simple toast */
+function showToast(msg){
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = `
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    padding: 12px 18px;
+    border-radius: 12px;
+    color: #fff;
+    z-index: 1500;
+    box-shadow: var(--soft-shadow);
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all .35s ease-out;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // fade out smoothly
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translate(-50%, -40%)';
+    setTimeout(() => toast.remove(), 600);
+  }, 1500);
+}
+
+  
+
+// Custom dropdown behavior
+const dropdown = document.querySelector('.custom-dropdown');
+const selected = dropdown.querySelector('.dropdown-selected');
+const options = dropdown.querySelector('.dropdown-options');
+
+dropdown.addEventListener('click', (e) => {
+  // Only open if user clicks the selected area, not any child
+  if (!e.target.classList.contains('dropdown-selected')) return;
+  const expanded = dropdown.getAttribute('aria-expanded') === 'true';
+  dropdown.setAttribute('aria-expanded', !expanded);
+  options.hidden = expanded;
+});
+
+options.querySelectorAll('.dropdown-option').forEach(opt => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent reopening
+
+    // Remove old selection
+    options.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+
+    // Mark this one as selected
+    opt.classList.add('selected');
+
+    //  Update visible text immediately
+    selected.textContent = opt.textContent;
+
+    // Close dropdown
+    dropdown.setAttribute('aria-expanded', false);
+    options.hidden = true;
+
+    // Call your filter logic
+    handleDateModeChange(opt.dataset.value);
+  });
+});
+
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!dropdown.contains(e.target)) {
+    dropdown.setAttribute('aria-expanded', false);
+    options.hidden = true;
+  }
+});
+  
+  
+  // Modern segmented toggle behavior
+document.querySelectorAll('.segmented button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const selectedType = btn.dataset.type;
+    window.currentTransactionType = selectedType;
+
+    // âœ… Update categories dynamically
+    updateCategoryOptions(selectedType);
+  });
+});
+
+  
+ // ============================= //
+//   EDIT & DELETE (Unified)    //
+// ============================= //
+
+// DELETE
+document.getElementById('deleteTrxBtn').addEventListener('click', async () => {
+  if (!window.currentTxId) return;
+  const sure = confirm('Delete this transaction?');
+  if (!sure) return;
+
+  const t = db.transaction('transactions', 'readwrite');
+  const store = t.objectStore('transactions');
+  store.delete(window.currentTxId);
+  t.oncomplete = async () => {
+    modalManager.close();
+    await render();
+    showToast('Transaction deleted', 'middle');
+  };
+});
+
+
+// ============================= //
+//   EDIT / SAVE toggle logic    //
+// ============================= //
+document.getElementById('editTrxBtn').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const isEditing = btn.textContent === 'edit';
+
+  if (!window.currentTxId) return;
+
+  if (isEditing) {
+    // ✅ Switch to edit mode
+    btn.textContent = 'check';
+    btn.title = 'Save';
+    showToast('Edit mode enabled', 'middle');
+
+    // Make inputs editable
+    document.getElementById('amountInput').removeAttribute('readonly');
+    document.getElementById('notesInput').removeAttribute('readonly');
+    document.getElementById('categorySelect').removeAttribute('disabled');
+    document.getElementById('sourceSelect').removeAttribute('disabled');
+    document.getElementById('datetimeInput').removeAttribute('disabled');
+
+  } 
+  else 
+  {
+
+    // ✅ Save mode (user clicked check icon)
+    const updated = {
+      amount: parseFloat(document.getElementById('amountInput').value) || 0,
+      notes: document.getElementById('notesInput').value.trim(),
+      timestamp: new Date(document.getElementById('datetimeInput').value).getTime(),
+      type: document.querySelector('.segmented button.active').dataset.type,
+      category: document.getElementById('categorySelect').value,
+      source: document.getElementById('sourceSelect').value
+    };
+
+    // Update in IndexedDB
+    const t = db.transaction('transactions', 'readwrite');
+    const store = t.objectStore('transactions');
+    const req = store.get(window.currentTxId);
+
+    req.onsuccess = () => {
+      const tx = req.result;
+      if (tx) {
+        Object.assign(tx, updated);
+        store.put(tx);
+      }
+    };
+
+    t.oncomplete = async () => {
+      modalManager.close();
+      await render();
+      showToast('Changes saved', 'middle');
+
+      // Reset button and lock inputs
+      btn.textContent = 'edit';
+      btn.title = 'Edit';
+      document.getElementById('amountInput').setAttribute('readonly', true);
+      document.getElementById('notesInput').setAttribute('readonly', true);
+      document.getElementById('categorySelect').setAttribute('disabled', true);
+      document.getElementById('sourceSelect').setAttribute('disabled', true);
+      document.getElementById('datetimeInput').setAttribute('disabled', true);
+    };
+  }
+   
+
+});
+
+
+// SAVE (Add new)
+document.getElementById('saveTrxBtn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  if (!amount) {
+    showToast('Please enter amount', 'middle');
+    return;
+  }
+
+  const payload = {
+    timestamp: new Date(document.getElementById('datetimeInput').value).getTime() || Date.now(),
+    amount: amount,
+    notes: document.getElementById('notesInput').value.trim(),
+    type: document.querySelector('.segmented button.active').dataset.type,
+    category: document.getElementById('categorySelect').value,
+    source: document.getElementById('sourceSelect').value
+  };
+
+  try {
+        await addTransactionToDB(payload);
+        
+    modalManager.close();
+    // Re-run filter so the UI respects currently selected daily/monthly/yearly mode
+    await render();
+    showToast('Transaction added', 'middle');
+
+  } catch (err) {
+    console.error('Save failed:', err);
+    showToast('Save failed: ' + (err?.message || err), 'middle');
+  }
+});
+  
+  
+// ============================= //
+//  DATE MODE + NAVIGATION LOGIC //
+// ============================= //
+
+
+
+const currentDateLabel = document.getElementById("currentDateLabel");
+const arrowLeft = document.getElementById("arrowLeft");
+const arrowRight = document.getElementById("arrowRight");
+
+// Format date label based on mode
+function updateDateLabel() {
+  const d = currentDate;
+    // If mode is ALL â€” show a static label and hide period arrows
+  if (currentMode === "all") {
+    currentDateLabel.textContent = "  All Records";
+    arrowLeft.style.display = "none";
+    arrowRight.style.display = "none";
+    return;
+  }
+
+  // Otherwise, ensure arrows are visible
+  arrowLeft.style.display = "";
+  arrowRight.style.display = "";
+  
+  if (currentMode === "daily") {
+    currentDateLabel.textContent = d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } else if (currentMode === "monthly") {
+    currentDateLabel.textContent = d.toLocaleDateString("en-GB", {
+      month: "short",
+      year: "numeric",
+    });
+  } else if (currentMode === "yearly") {
+    currentDateLabel.textContent = d.getFullYear();
+  }
+}
+
+// Navigate prev/next
+function changePeriod(direction) {
+  if (currentMode === "daily") {
+    currentDate.setDate(currentDate.getDate() + direction);
+  } else if (currentMode === "monthly") {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+  } else if (currentMode === "yearly") {
+    currentDate.setFullYear(currentDate.getFullYear() + direction);
+  }
+  updateDateLabel();
+  render();
+}
+
+arrowLeft.addEventListener("click", () => {
+    exitMultiSelectMode();
+    updateFabHandler();
+    changePeriod(-1);
+    
+});
+arrowRight.addEventListener("click", () =>{ 
+    exitMultiSelectMode();
+    updateFabHandler();
+    changePeriod(1);
+    
+});
+
+// When dropdown changes mode
+function handleDateModeChange(mode) {
+
+  // 🔥 FIX: Always exit multi-select when mode changes
+  exitMultiSelectMode();
+  updateFabHandler();
+
+  currentMode = mode;
+  currentDate = new Date();
+  currentSearch = "";
+  document.getElementById('searchInput').value = "";
+  updateDateLabel();
+  render();
+}
+
+
+
+
+/* === Splash & Loading helpers === */
+function showLoading(message = "Loading...") {
+  const load = document.getElementById('loadingScreen');
+  const msgEl = document.getElementById('loadingMessage');
+  if (msgEl) msgEl.textContent = message;
+  load.style.display = 'flex';
+  load.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoading() {
+  const load = document.getElementById('loadingScreen');
+  if (!load) return;
+  load.classList.add('hidden-fade');
+  setTimeout(() => {
+    load.style.display = 'none';
+    load.classList.remove('hidden-fade');
+    load.setAttribute('aria-hidden', 'true');
+  }, 600);
+}
+
+function hideSplashAndShowApp() {
+  const splash = document.getElementById('splashScreen');
+  const app = document.querySelector('.container'); // ✅ fixed
+
+  
+  splash.classList.add('hidden-fade');
+  setTimeout(() => {
+    splash.style.display = 'none';
+    splash.setAttribute('aria-hidden', 'true');
+    app.style.display = 'block';
+    requestAnimationFrame(() => app.classList.add('visible'));
+  }, 700);
+}
+
+// === 2️⃣ App setup ===
+async function initializeApp() {
+  showLoading("Opening database...");
+  await initDB();
+  
+   initAutoBackupSettings();
+
+  showLoading("Loading settings...");
+  appSettings = await getAppSettings();
+  
+  // Ensure filter defaults exist (do not overwrite existing)
+appSettings = appSettings || { key: 'app', currency: 'INR' };
+if (!appSettings.hasOwnProperty('sort')) appSettings.sort = 'newest';
+if (!appSettings.hasOwnProperty('filters')) appSettings.filters = {};
+
+const f = appSettings.filters;
+if (!Array.isArray(f.types)) f.types = [];
+if (!Array.isArray(f.expenseCategories)) f.expenseCategories = [];
+if (!Array.isArray(f.incomeCategories)) f.incomeCategories = [];
+if (!Array.isArray(f.sources)) f.sources = [];
+if (typeof f.minAmount === 'undefined') f.minAmount = null;
+if (typeof f.maxAmount === 'undefined') f.maxAmount = null;
+
+// Persist defaults if we added any keys (keeps safe)
+await saveAppSettings(appSettings);
+
+
+  // ✅ Set appCurrency from settings
+  appCurrency = appSettings.currency || 'INR';
+  
+  
+
+  // ✅ Populate dropdown BEFORE setting value
+  populateCurrencyDropdown();
+
+  // ✅ Select the saved or default currency
+  document.getElementById('currencySelect').value = appCurrency;
+
+  showLoading("Preparing interface...");
+  await updateCategoryOptions('expense');
+  await updateDateLabel();
+  await render();
+  await initOverviewFeature();
+  initSortFilterFeature(); // ✅ Initialize Sort + Filter UI feature
+  
+  
+  updateFabHandler();
+
+  hideLoading();
+}
+
+// ===========================================================
+// 🧾 FUNCTION: printSettingsStore()
+// -----------------------------------------------------------
+// • Reads all data from the "settings" object store.
+// • Displays settings directly in an alert box.
+// ===========================================================
+// ===========================================================
+// 🧾 FUNCTION: printSettingsStore()
+// -----------------------------------------------------------
+// • Fetches all records from the "settings" object store.
+// • Displays the raw JSON object in an alert box.
+// ===========================================================
+async function printSettingsStore() {
+  if (!db) {
+    console.log("❌ Database not initialized yet!");
+    return;
+  }
+
+  try {
+    const tx = db.transaction("settings", "readonly");
+    const store = tx.objectStore("settings");
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+      const result = req.result || [];
+
+      if (result.length === 0) {
+        console.log("⚠️ No records found in 'settings' store.");
+        return;
+      }
+
+      // Show raw object in alert
+      console.log("💾 SETTINGS STORE RAW DATA:\n\n" + JSON.stringify(result, null, 2));
+    };
+
+    req.onerror = () => {
+      console.log("❌ Failed to read 'settings' store!");
+      console.error("Error:", req.error);
+    };
+  } catch (err) {
+    console.log("❌ Unexpected error while reading settings store.");
+    console.error(err);
+  }
+}
+
+
+// overview-js-start
+async function initOverviewFeature(){
+  // state
+  let overviewMode = 'monthly'; // 'monthly' or 'yearly'
+  let overviewDate = new Date(); // month/year focus
+
+  const overlay = document.querySelector('[data-modal="overview"]');
+  const container = overlay?.querySelector('.modal-container');
+  const ovDropdown = document.getElementById('overviewModeDropdown');
+  const ovOptions = ovDropdown?.querySelector('.dropdown-options');
+  const ovSelected = ovDropdown?.querySelector('.dropdown-selected');
+  const ovDatePicker = document.getElementById('ovDatePicker');
+  const ovArrowLeft = document.getElementById('ovArrowLeft');
+  const ovArrowRight = document.getElementById('ovArrowRight');
+  const monthlyView = document.getElementById('monthlyView');
+  const yearlyView = document.getElementById('yearlyView');
+  const calendarGrid = document.getElementById('calendarGrid');
+  const monthlyTotal = document.getElementById('monthlyTotal');
+  const yearGrid = document.getElementById('yearGrid');
+  
+  // open by id click (user requested opening by id overviewBtn)
+  const overviewBtn = document.getElementById('overviewBtn');
+  if(overviewBtn){
+    overviewBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      // ensure modal manager uses top animation class for this modal
+      container?.classList.remove('leave-top'); container?.classList.add('enter-top');
+      modalManager.open('overview'); // uses existing modal manager
+      setTimeout(()=> renderOverview(), 60);
+    });
+  }
+
+  // small dropdown behavior
+  ovDropdown?.addEventListener('click', (e)=>{
+    if(!e.target.classList.contains('dropdown-selected')) return;
+    const open = ovDropdown.getAttribute('aria-expanded') === 'true';
+    ovDropdown.setAttribute('aria-expanded', !open);
+    ovOptions.hidden = open;
+  });
+  ovOptions?.querySelectorAll('.dropdown-option')?.forEach(opt=>{
+    opt.addEventListener('click', ()=>{
+      ovOptions.querySelectorAll('.dropdown-option').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      ovSelected.textContent = opt.textContent;
+      overviewMode = opt.dataset.value;
+      
+     // ✅ Update subtitle text based on mode
+document.getElementById('overviewSubtitle').textContent = 
+  overviewMode === 'monthly' ? 'Monthly' : 'Yearly';
+  
+      
+      // toggle views
+      if(overviewMode === 'monthly'){ monthlyView.classList.remove('hidden-display'); yearlyView.classList.add('hidden-display'); }
+      else { monthlyView.classList.add('hidden-display'); yearlyView.classList.remove('hidden-display'); }
+      // update date picker type
+      if(overviewMode === 'monthly'){ ovDatePicker.type='month'; ovDatePicker.value = formatMonthInput(overviewDate); }
+      else { ovDatePicker.type='number'; ovDatePicker.value = overviewDate.getFullYear(); }
+      // reset to current month/year on mode switch
+       const now = new Date();
+      if (overviewMode === 'monthly') {
+         overviewDate = new Date(now.getFullYear(), now.getMonth(), 1);
+         } else {
+       overviewDate = new Date(now.getFullYear(), 0, 1);
+       }
+
+      
+      renderOverview();
+      ovDropdown.setAttribute('aria-expanded', false);
+      ovOptions.hidden = true;
+    });
+  });
+
+  // date helpers
+  function formatMonthInput(d){
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    return `${yyyy}-${mm}`;
+  }
+ 
+  // arrows
+  ovArrowLeft?.addEventListener('click', ()=> {
+    if(overviewMode === 'monthly'){ overviewDate.setMonth(overviewDate.getMonth() - 1); ovDatePicker.value = formatMonthInput(overviewDate); }
+    else { overviewDate.setFullYear(overviewDate.getFullYear() - 1); ovDatePicker.value = overviewDate.getFullYear(); }
+    renderOverview();
+  });
+  ovArrowRight?.addEventListener('click', ()=> {
+    if(overviewMode === 'monthly'){ overviewDate.setMonth(overviewDate.getMonth() + 1); ovDatePicker.value = formatMonthInput(overviewDate); }
+    else { overviewDate.setFullYear(overviewDate.getFullYear() + 1); ovDatePicker.value = overviewDate.getFullYear(); }
+    renderOverview();
+  });
+  
+// =============================
+// Overview Type Toggle (Expense / Income)
+// =============================
+const overviewTypeToggle = document.getElementById('overviewTypeToggle');
+let overviewType = 'expense'; // default
+
+overviewTypeToggle?.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove previous active
+    overviewTypeToggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    
+    // Activate current button
+    btn.classList.add('active');
+    
+    // Update overview type
+    overviewType = btn.dataset.type;
+
+    // Optional: add body class for CSS theme change
+    document.body.classList.toggle('income-mode', overviewType === 'income');
+
+    // ✅ Re-render overview dynamically (updates both color and totals)
+    renderOverview();
+  });
+});
+
+
+function updateOverviewContent() {
+  const monthlyView = document.getElementById('monthlyView');
+  const yearlyView = document.getElementById('yearlyView');
+
+  // Update section label
+  if (overviewType === 'expense') {
+    monthlyView.querySelector('div[style*="font-weight:700"]').textContent = 'Expenses This Month';
+  } else {
+    monthlyView.querySelector('div[style*="font-weight:700"]').textContent = 'Incomes This Month';
+  }
+
+  // 🔄 Hook your overview data reload here
+  if (typeof renderOverviewData === 'function') {
+    renderOverviewData(overviewType);
+  }
+}
+
+
+  // datepicker change (month or year)
+  ovDatePicker?.addEventListener('change', (e)=>{
+    if(overviewMode === 'monthly'){
+      const [y,m] = e.target.value.split('-').map(Number);
+      overviewDate.setFullYear(y, m-1, 1);
+    } else {
+      overviewDate.setFullYear(Number(e.target.value || overviewDate.getFullYear()));
+    }
+    renderOverview();
+  });
+
+
+  // render overview (monthly or yearly)
+  async function renderOverview(){
+    // ensure controls default
+    if(!ovDatePicker) return;
+    if(overviewMode === 'monthly'){ ovDatePicker.type='month'; ovDatePicker.value = formatMonthInput(overviewDate); }
+    else { ovDatePicker.type='number'; ovDatePicker.value = overviewDate.getFullYear(); }
+
+    // fetch transactions from DB (uses your existing function)
+    const all = await getAllTransactions();
+    if(!all) return;
+
+if (overviewMode === 'monthly') {
+  const year = overviewDate.getFullYear();
+  const month = overviewDate.getMonth();
+  const end = new Date(year, month + 1, 0);
+  const daysInMonth = end.getDate();
+  const dayTotals = Array.from({ length: daysInMonth }, () => 0);
+
+  for (const tx of all) {
+    if (!tx || !tx.timestamp) continue;
+    const d = new Date(Number(tx.timestamp));
+    if (d.getFullYear() === year && d.getMonth() === month && tx.type === overviewType) {
+      dayTotals[d.getDate() - 1] += Number(tx.amount || 0);
+    }
+  }
+
+  calendarGrid.innerHTML = '';
+  const firstWeekDay = new Date(year, month, 1).getDay();
+  for (let i = 0; i < firstWeekDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'overview-day';
+    empty.style.opacity = '0.12';
+    calendarGrid.appendChild(empty);
+  }
+
+  let totalMonth = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const val = dayTotals[day - 1] || 0;
+    totalMonth += val;
+
+    const el = document.createElement('div');
+    el.className = 'overview-day';
+    el.style.background = 'var(--card)'; // match UI background
+    
+      // ✅ Highlight current day
+  const now = new Date();
+  if (
+    now.getFullYear() === year &&
+    now.getMonth() === month &&
+    now.getDate() === day
+  ) {
+    el.classList.add('current-day');
+  }
+  
+
+    // set text color
+    let color;
+    if (val === 0) color = '#888'; // gray
+    else color = overviewType === 'expense' ? '#e84c3d' : '#4ecb71';
+
+    el.innerHTML = `
+      <div style="font-weight:500">${day}</div>
+      <div style="color:${color};font-size:0.65rem;margin-top:6px">
+        ${formatCurrency(val)}
+      </div>
+    `;
+    calendarGrid.appendChild(el);
+  }
+
+  monthlyTotal.textContent = `Total ${formatCurrency(totalMonth)}`;
+  
+}
+
+else {
+  const year = overviewDate.getFullYear();
+  const months = Array.from({ length: 12 }, () => 0);
+
+  for (const tx of all) {
+    if (!tx || !tx.timestamp) continue;
+    const d = new Date(Number(tx.timestamp));
+    if (d.getFullYear() === year && tx.type === overviewType) {
+      months[d.getMonth()] += Number(tx.amount || 0);
+    }
+  }
+
+  yearGrid.innerHTML = '';
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let totalYear = 0; // ✅ add this line
+
+  for (let i = 0; i < 12; i++) {
+    const val = months[i] || 0;
+    totalYear += val; // ✅ accumulate total
+
+    const el = document.createElement('div');
+    el.className = 'month-tile';
+    el.style.background = 'var(--card)';
+    
+      // ✅ Highlight current month
+  const now = new Date();
+  if (i === now.getMonth() && year === now.getFullYear()) {
+    el.classList.add('current-month');
+  }
+  
+
+    let color;
+    if (val === 0) color = '#888';
+    else color = overviewType === 'expense' ? '#e84c3d' : '#4ecb71';
+
+    el.innerHTML = `
+      <div style="font-weight:700">${monthNames[i]}</div>
+      <div style="color:${color};font-size:0.9rem;margin-top:8px">
+        ${formatCurrency(val)}
+      </div>
+    `;
+    yearGrid.appendChild(el);
+  }
+
+  // ✅ show total year amount
+  const yearlyTotalEl = document.getElementById('yearlyTotal');
+  if (yearlyTotalEl) yearlyTotalEl.textContent = `Total ${formatCurrency(totalYear)}`;
+}
+
+
+
+  }
+
+  // when modal opens (hook into existing modalManager flows)
+  const obs = new MutationObserver(()=> {
+    if(!overlay) return;
+    if(!overlay.classList.contains('hidden') && overlay.getAttribute('aria-hidden')==='false'){
+      // modal opened
+      // ensure uses top-enter animation class
+      container?.classList.remove('leave-top'); container?.classList.add('enter-top');
+      renderOverview();
+    } else {
+      // closed: set leave-top for animation
+      container?.classList.remove('enter-top'); container?.classList.add('leave-top');
+    }
+  });
+  if(overlay) obs.observe(overlay, {attributes:true,attributeFilter:['class','aria-hidden']});
+}
+// overview-js-end
+
+/* =====================================================
+   ✅ AUTO BACKUP SETTINGS — INIT + SYNC WITH INDEXEDDB
+   ===================================================== */
+async function initAutoBackupSettings() {
+  const autoBackupToggle = document.getElementById("autoBackupToggle");
+  const backupFrequency = document.getElementById("backupFrequency");
+  const lastBackupDateEl = document.getElementById("lastBackupDate");
+
+  const settings = await getAppSettings();
+
+  // ensure defaults
+  if (typeof settings.autoBackup === "undefined") settings.autoBackup = false;
+  if (typeof settings.backupFrequency === "undefined") settings.backupFrequency = "weekly";
+  if (typeof settings.lastBackupDate === "undefined") settings.lastBackupDate = new Date().toISOString();
+
+  // apply to UI
+  autoBackupToggle.checked = settings.autoBackup;
+  backupFrequency.value = settings.backupFrequency;
+  lastBackupDateEl.textContent = new Date(settings.lastBackupDate).toLocaleString();
+
+  // save defaults if new
+  await saveAppSettings(settings);
+
+  // handle toggle change
+  autoBackupToggle.addEventListener("change", async (e) => {
+    await saveAppSettings("autoBackup", e.target.checked);
+    showToast(`Auto backup ${e.target.checked ? "enabled" : "disabled"}`);
+  });
+
+  // handle frequency change
+  backupFrequency.addEventListener("change", async (e) => {
+    await saveAppSettings("backupFrequency", e.target.value);
+    showToast(`Backup frequency set to ${e.target.value}`);
+  });
+}
+
+// START SORT-FILTER JS - remove this entire block to delete Sort+Filter behavior
+
+// 1️⃣ Handle clicking on radio groups (multi/single select)
+function setupSortFilterButtons() {
+  document.querySelectorAll('.radio-group').forEach(group => {
+    const isMulti = group.classList.contains('multi-select');
+    const isSingle = group.classList.contains('single-select');
+
+    group.addEventListener('click', (e) => {
+      const opt = e.target.closest('.radio-option');
+      if (!opt) return;
+
+      if (isMulti) {
+        opt.classList.toggle('active');
+      } else if (isSingle) {
+        group.querySelectorAll('.radio-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+      } else {
+        group.querySelectorAll('.radio-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+      }
+    });
+  });
+}
+
+// 2️⃣ Restore saved Sort + Filter UI state
+// 2️⃣ Restore saved Sort + Filter UI state
+function restoreSortFilterUI() {
+  if (!appSettings) return;
+
+  // Sort
+  document.querySelectorAll('#sortOptions .radio-option').forEach(o => {
+    o.classList.toggle('active', appSettings.sort === o.dataset.value);
+  });
+
+  // Filters (types)
+  const f = appSettings.filters || {};
+  document.querySelectorAll('#filterType .radio-option').forEach(o => o.classList.toggle('active', (f.types || []).includes(o.dataset.value)));
+
+  // Expense / Income category groups
+  const expCats = f.expenseCategories || [];
+  const incCats = f.incomeCategories || [];
+  document.querySelectorAll('#filterExpenseCategoryGroup .radio-option').forEach(o => o.classList.toggle('active', expCats.includes(o.dataset.value)));
+  document.querySelectorAll('#filterIncomeCategoryGroup .radio-option').forEach(o => o.classList.toggle('active', incCats.includes(o.dataset.value)));
+
+  // Sources
+  document.querySelectorAll('#filterSourceGroup .radio-option').forEach(o => o.classList.toggle('active', (f.sources || []).includes(o.dataset.value)));
+
+  // Amount
+  document.getElementById('minAmount').value = (f.minAmount ?? "") || "";
+  document.getElementById('maxAmount').value = (f.maxAmount ?? "") || "";
+}
+
+// 3️⃣ Apply (save + re-render)
+// ✅ Apply Sort + Filters (includes Date Filter)
+async function applySortFilter() {
+  const sortSel = document.querySelector('#sortOptions .radio-option.active')?.dataset.value || 'newest';
+
+  // Collect filter selections
+  const types = [...document.querySelectorAll('#filterType .radio-option.active')].map(el => el.dataset.value);
+  const expenseCategories = [...document.querySelectorAll('#filterExpenseCategoryGroup .radio-option.active')].map(el => el.dataset.value);
+  const incomeCategories = [...document.querySelectorAll('#filterIncomeCategoryGroup .radio-option.active')].map(el => el.dataset.value);
+  const sources = [...document.querySelectorAll('#filterSourceGroup .radio-option.active')].map(el => el.dataset.value);
+
+  const minAmount = Number(document.getElementById('minAmount').value) || null;
+  const maxAmount = Number(document.getElementById('maxAmount').value) || null;
+
+  // ✅ NEW: Date filter selection
+  const dateOption = document.querySelector('#filterDateGroup .radio-option.active')?.dataset.value || null;
+  const startDateInput = document.getElementById('startDate')?.value;
+  const endDateInput = document.getElementById('endDate')?.value;
+
+  let startDate = null;
+  let endDate = null;
+
+  if (dateOption) {
+    const now = new Date();
+    switch (dateOption) {
+      case 'last7':
+        startDate = new Date(now - 7 * 86400000);
+        endDate = now;
+        break;
+      case 'last15':
+        startDate = new Date(now - 15 * 86400000);
+        endDate = now;
+        break;
+      case 'last30':
+        startDate = new Date(now - 30 * 86400000);
+        endDate = now;
+        break;
+      case 'last60':
+        startDate = new Date(now - 60 * 86400000);
+        endDate = now;
+        break;
+      case 'custom':
+        if (startDateInput && endDateInput) {
+          startDate = new Date(startDateInput);
+          endDate = new Date(endDateInput);
+        }
+        break;
+    }
+  }
+
+  currentSort = sortSel;
+  activeFilters = {
+    types,
+    expenseCategories,
+    incomeCategories,
+    sources,
+    minAmount,
+    maxAmount,
+    dateOption,
+    startDate: startDate ? startDate.getTime() : null,
+    endDate: endDate ? endDate.getTime() : null
+  };
+
+  // Ensure appSettings exists
+  if (!appSettings) appSettings = await getAppSettings() || { key: 'app' };
+
+  // Save updated settings
+  appSettings.sort = currentSort;
+  appSettings.filters = { ...activeFilters };
+
+  await saveAppSettings(appSettings);
+
+  modalManager.close();
+  render();
+}
+
+
+
+
+
+
+// ✅ Reset Sort + Filter (clears everything)
+async function resetSortFilter() {
+  // Sort: reset to newest
+  document.querySelectorAll('#sortOptions .radio-option').forEach(o =>
+    o.classList.toggle('active', o.dataset.value === 'newest')
+  );
+
+  // Clear type/category/source filters
+  document.querySelectorAll(
+    '#filterType .radio-option, #filterExpenseCategoryGroup .radio-option, #filterIncomeCategoryGroup .radio-option, #filterSourceGroup .radio-option'
+  ).forEach(o => o.classList.remove('active'));
+
+  // Clear amounts
+  document.getElementById('minAmount').value = "";
+  document.getElementById('maxAmount').value = "";
+
+  // ✅ Clear date filter
+  document.querySelectorAll('#filterDateGroup .radio-option').forEach(o => o.classList.remove('active'));
+  document.getElementById('customDateInputs').style.display = 'none';
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+
+  // Reset state
+  currentSort = 'newest';
+  activeFilters = {
+    types: [],
+    expenseCategories: [],
+    incomeCategories: [],
+    sources: [],
+    minAmount: null,
+    maxAmount: null,
+    dateOption: null,
+    startDate: null,
+    endDate: null
+  };
+
+  // Save defaults to IndexedDB
+  if (!appSettings) appSettings = await getAppSettings() || { key: 'app' };
+  appSettings.sort = currentSort;
+  appSettings.filters = { ...activeFilters };
+
+  await saveAppSettings(appSettings);
+
+  render();
+}
+
+
+
+
+
+
+// ✅ Initialize Sort + Filter feature
+function initSortFilterFeature() {
+  setupSortFilterButtons();
+
+  // Restore saved filters when opening modal
+  const openBtn = document.getElementById('filterBtn');
+  if (openBtn) {
+    openBtn.addEventListener('click', () => restoreSortFilterUI());
+  }
+
+  // Apply button
+  document.getElementById('applySortFilterBtn')?.addEventListener('click', applySortFilter);
+
+  // Reset button
+  document.getElementById('resetFilterBtn')?.addEventListener('click', resetSortFilter);
+
+  // ✅ NEW — Date Filter toggle behavior
+  const dateGroup = document.getElementById("filterDateGroup");
+  const customDateInputs = document.getElementById("customDateInputs");
+
+  dateGroup?.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("radio-option")) return;
+
+    // clear previous selection
+    dateGroup.querySelectorAll(".radio-option").forEach(opt => opt.classList.remove("active"));
+    e.target.classList.add("active");
+
+    // toggle custom range visibility
+    customDateInputs.style.display = (e.target.dataset.value === "custom") ? "block" : "none";
+  });
+}
+
+// END SORT-FILTER JS
+
+
+
+
+
+/* ============================
+   CHARTS MODAL INIT (FIXED)
+============================ */
+/* ===================================
+   CATEGORY COLORS (uses existing app)
+=================================== */
+
+function getCategoryColor(cat) {
+    const exp = expenseCategories.find(c => c.name === cat);
+    if (exp) return exp.color;
+
+    const inc = incomeCategories.find(c => c.name === cat);
+    if (inc) return inc.color;
+
+    return "#607d8b"; // fallback
+}
+
+
+function getSourceColor(src) {
+    return window.categoryColors?.[src] || "#6C6C6C";
+}
+
+
+
+
+document.querySelector("[data-open='charts']").addEventListener("click", async () => {
+    const all = window.allTransactions || await getAllTransactions();
+
+    const now = new Date();
+
+    const tx = all.filter(t => {
+        const d = new Date(Number(t.timestamp));
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    renderCharts(tx);
+});
+
+
+/* ============================
+   MONTH PICKER (FIXED)
+============================ */
+
+document.getElementById("chartsMonth").addEventListener("change", async () => {
+    const val = document.getElementById("chartsMonth").value;
+
+    if (!val || !val.includes("-")) return;
+
+    const [year, month] = val.split("-").map(Number);
+
+    const all = window.allTransactions || await getAllTransactions();
+
+    const tx = all.filter(t => {
+        const d = new Date(Number(t.timestamp));
+        return d.getFullYear() === year && d.getMonth() === (month - 1);
+    });
+
+    renderCharts(tx);
+});
+
+
+/* ============================
+   COLLAPSE
+============================ */
+
+document.querySelectorAll(".chart-header").forEach(header => {
+    header.addEventListener("click", () => {
+        const body = header.nextElementSibling;
+
+        header.classList.toggle("active");
+
+        if (body.classList.contains("open")) {
+            // CLOSING
+            const fullHeight = body.scrollHeight;
+            body.style.maxHeight = fullHeight + "px"; // set current height
+            requestAnimationFrame(() => {
+                body.style.maxHeight = "0px";
+            });
+            body.classList.remove("open");
+
+        } else {
+            // OPENING
+            body.style.display = "block";
+            body.style.maxHeight = "0px";
+
+            requestAnimationFrame(() => {
+                const fullHeight = body.scrollHeight;
+                body.style.maxHeight = fullHeight + "px";
+            });
+
+            body.classList.add("open");
+        }
+    });
+});
+
+
+
+/* ============================
+   NUM FIX HELPER
+============================ */
+
+function toNum(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+}
+
+
+/* ============================
+   RENDER CHARTS (CLEAN)
+============================ */
+
+function renderCharts(tx) {
+    renderCategoryBars(tx.filter(t => t.type === "expense"), "expCatBody");
+    renderCategoryBars(tx.filter(t => t.type === "income"), "incCatBody");
+    renderSourceBars(tx, "sourceCatBody");
+    renderExpenseVsIncome(tx, "expVsIncBody");
+
+    animateBars();   // <--- ADD THIS
+}
+
+
+function animateBars() {
+    requestAnimationFrame(() => {
+        document.querySelectorAll(".bar-fill").forEach(bar => {
+            const target = bar.style.getPropertyValue("--target");
+            bar.classList.remove("animate");
+            bar.offsetWidth; // reflow
+            bar.style.width = target;
+            bar.classList.add("animate");
+        });
+    });
+}
+
+
+
+/* ============================
+   CATEGORY BARS
+============================ */
+
+function renderCategoryBars(list, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    const grouped = {};
+
+    list.forEach(t => {
+        const cat = t.category || "Uncategorized";
+        grouped[cat] = (grouped[cat] || 0) + toNum(t.amount);
+    });
+
+    const values = Object.values(grouped);
+    if (values.length === 0) return;
+
+    const maxVal = Math.max(...values, 1);
+
+    Object.keys(grouped).forEach(cat => {
+        const amount = grouped[cat];
+        const percent = (amount / maxVal) * 100;
+
+        container.innerHTML += `
+  <div class="bar-row">
+      <div class="bar-label">${cat} — ${formatCurrency(amount)}</div>
+      <div class="bar-track">
+          <div class="bar-fill" 
+              style="--target:${percent}%; background:${getCategoryColor(cat)}"></div>
+      </div>
+  </div>
+`;
+
+    });
+}
+
+
+/* ============================
+   SOURCE BARS
+============================ */
+
+function renderSourceBars(list, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    const grouped = {};
+
+    list.forEach(t => {
+        const src = t.source || "Unknown";
+        grouped[src] = (grouped[src] || 0) + toNum(t.amount);
+    });
+
+    const values = Object.values(grouped);
+    if (values.length === 0) return;
+
+    const maxVal = Math.max(...values, 1);
+
+    Object.keys(grouped).forEach(src => {
+        const amount = grouped[src];
+        const percent = (amount / maxVal) * 100;
+
+        container.innerHTML += `
+  <div class="bar-row">
+      <div class="bar-label">${src} — ${formatCurrency(amount)}</div>
+      <div class="bar-track">
+          <div class="bar-fill" 
+              style="--target:${percent}%; background:${getSourceColor(src)}"></div>
+      </div>
+  </div>
+`;
+
+    });
+}
+
+
+/* ============================
+   EXPENSE VS INCOME
+============================ */
+
+function renderExpenseVsIncome(tx, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    const expense = tx.filter(t => t.type === "expense")
+                      .reduce((a, b) => a + toNum(b.amount), 0);
+
+    const income = tx.filter(t => t.type === "income")
+                     .reduce((a, b) => a + toNum(b.amount), 0);
+
+    const maxVal = Math.max(expense, income, 1);
+
+    [
+        { label: "Expense", amount: expense },
+        { label: "Income", amount: income }
+    ].forEach(row => {
+        const percent = (row.amount / maxVal) * 100;
+
+        container.innerHTML += `
+  <div class="bar-row">
+      <div class="bar-label">${row.label} — ${formatCurrency(row.amount)}</div>
+      <div class="bar-track">
+          <div class="bar-fill"
+              style="--target:${percent}%; background:${row.label === 'Expense' ? '#E74C3C' : '#2ECC71'}"></div>
+      </div>
+  </div>
+`;
+
+    });
+}
+
+
+/* ============================
+   CHARTS MODAL END
+============================ */
+
+
+
+// =============================
+//  Startup Sequence (runs after splash)
+// =============================
+window.addEventListener('load', async () => {
+  try {
+    await initializeApp();       // run your setup with loading
+    // ✅ Add splash display delay (adjust seconds as you like)
+    setTimeout(() => {
+      hideSplashAndShowApp();  // fade out splash and show app
+    }, 1500); // 3 seconds delay
+    }
+    catch (err) {
+    console.error("Startup error:", err);
+    hideLoading();
+    hideSplashAndShowApp();
+  }
+});
+
+
+
+</script>
+</body>
+</html>
